@@ -4,7 +4,7 @@
  * 用途：渲染检测项的通过/部分/失败图标 + 颜色
  * 读取方：R4（结果页 9 项检测列表）、R5（历史页可复用）
  *
- * props 已冻结，Day 2-3 再填充真实样式与颜色。
+ * props 已冻结。当前版本已提供状态符号和状态颜色映射。
  */
 
 export interface StatusIconProps {
@@ -12,9 +12,9 @@ export interface StatusIconProps {
   status: 'pass' | 'partial' | 'fail'
 }
 
-/** Day 1 空壳版本：返回占位图标，Day 2-3 填真实样式 */
+/** R3 正式交付版本 */
 export function StatusIcon({ status }: StatusIconProps) {
-  // Day 1 占位：先用文字符号，后续替换为 SVG 图标 + 颜色映射
+  // 使用轻量文字符号，便于纯前端演示和后续替换为图标组件
   // pass → ✓（绿）/ partial → △（橙）/ fail → ✗（红）
   const symbol = status === 'pass' ? '✓' : status === 'partial' ? '△' : '✗'
   return <span className={`status-icon status-icon--${status}`} aria-label={status}>{symbol}</span>

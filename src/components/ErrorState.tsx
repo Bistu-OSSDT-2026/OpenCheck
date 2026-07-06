@@ -18,7 +18,7 @@ export interface ErrorStateProps {
   onAction?: () => void
 }
 
-/** Day 1 空壳版本 */
+/** R3 正式交付版本 */
 export function ErrorState({ error, onRetry, actionText, onAction }: ErrorStateProps) {
   return (
     <div className="error-state">

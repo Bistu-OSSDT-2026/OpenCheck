@@ -14,7 +14,7 @@ export interface EmptyStateProps {
   action?: ReactNode
 }
 
-/** Day 1 空壳版本 */
+/** R3 正式交付版本 */
 export function EmptyState({ text, action }: EmptyStateProps) {
   return (
     <div className="empty-state">

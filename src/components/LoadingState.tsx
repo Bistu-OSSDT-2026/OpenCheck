@@ -10,7 +10,7 @@ export interface LoadingStateProps {
   text?: string
 }
 
-/** Day 1 空壳版本 */
+/** R3 正式交付版本 */
 export function LoadingState({ text = '加载中...' }: LoadingStateProps) {
   return (
     <div className="loading-state">

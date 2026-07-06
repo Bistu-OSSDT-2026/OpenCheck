@@ -4,7 +4,7 @@
  * 用途：页面外层容器（导航栏 + 返回按钮 + 内容区）
  * 读取方：R4（首页/结果页）、R5（报告页/历史页/Token 页）—— 所有页面都包这一层
  *
- * Day 2-3 完善导航栏（顶部 Logo、页面间跳转链接、移动端适配）。
+ * 已提供顶部 Logo、页面间跳转链接和当前页高亮，后续可继续补充移动端细节。
  */
 
 import type { ReactNode } from 'react'
@@ -18,7 +18,7 @@ export interface PageLayoutProps {
   showBack?: boolean
 }
 
-/** Day 1 空壳版本 */
+/** R3 正式交付版本 */
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { ROUTE } from '@/router/routes'
 

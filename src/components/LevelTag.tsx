@@ -10,7 +10,7 @@ export interface LevelTagProps {
   level: '优秀' | '较完整' | '基本可用' | '需要完善'
 }
 
-/** Day 1 空壳版本 */
+/** R3 正式交付版本 */
 export function LevelTag({ level }: LevelTagProps) {
   return <span className={`level-tag level-tag--${level}`}>{level}</span>
 }

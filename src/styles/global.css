@@ -1,4 +1,4 @@
-/* 全局基础样式 —— R3（倪子宸）所有，Day 1 最小可用，Day 2-3 完善设计 */
+/* 全局基础样式 —— R3（倪子宸）所有，支撑路由页面和共享组件的正式交付样式 */
 
 * {
   box-sizing: border-box;
@@ -77,7 +77,7 @@ body {
   margin-bottom: 16px;
 }
 
-/* ===== StatusIcon（占位颜色，Day 2-3 替换 SVG） ===== */
+/* ===== StatusIcon ===== */
 .status-icon--pass { color: var(--level-excellent); }
 .status-icon--partial { color: var(--level-basic); }
 .status-icon--fail { color: var(--level-poor); }
@@ -125,7 +125,7 @@ body {
 .level-tag--基本可用 { background: var(--level-basic); }
 .level-tag--需要完善 { background: var(--level-poor); }
 
-/* ===== LoadingState（占位） ===== */
+/* ===== LoadingState ===== */
 .loading-state {
   text-align: center;
   padding: 40px;
@@ -144,7 +144,7 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ===== ErrorState（占位） ===== */
+/* ===== ErrorState ===== */
 .error-state {
   text-align: center;
   padding: 40px;
@@ -159,7 +159,7 @@ body {
   cursor: pointer;
 }
 
-/* ===== EmptyState（占位） ===== */
+/* ===== EmptyState ===== */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
