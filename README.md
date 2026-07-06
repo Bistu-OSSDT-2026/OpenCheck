@@ -1,28 +1,27 @@
-﻿# OpenCheck
+# OpenCheck
 
-OpenCheck 是一个面向开源项目维护者的纯前端体检工具。用户输入 GitHub 仓库地址后，系统会读取仓库信息，检查 README、LICENSE、项目结构、运行说明等开源规范项，并生成评分、改进建议和 Markdown 报告。
+OpenCheck 是一个面向开源项目维护者的纯前端体检助手。输入 GitHub 仓库地址后，它会检查项目的开源规范性，包括关键文件是否齐全、README 内容是否充分、项目结构是否清晰，并生成评分、改进建议和可复制的 Markdown 报告。
 
-## 技术栈
+> 给开源项目做一次“体检”，告诉维护者哪里还不够好，以及下一步怎么改。
+
+## Features
+
+- **GitHub 仓库分析**：读取仓库基础信息、根目录文件和 README 内容。
+- **开源规范检查**：检测 README、LICENSE、`.gitignore`、CONTRIBUTING、CHANGELOG 等关键项。
+- **README 启发式分析**：检查运行说明、技术栈、项目结构、部署说明、截图/演示和使用说明。
+- **自动评分与等级**：输出 0-100 总分，并给出“优秀 / 较完整 / 基本可用 / 需要完善”等级。
+- **改进建议**：针对缺失或不完整项给出可操作的补充建议。
+- **Markdown 报告**：生成可复制、可下载的检测报告，方便留存或分享。
+- **本地历史与 Token**：通过浏览器本地存储保存检测历史和可选 GitHub Token。
+
+## Tech Stack
 
 - React 18
 - TypeScript
 - Vite
 - React Router
 
-## 当前状态
-
-当前 `main` 已包含 R3 交付的项目地基：
-
-- 项目脚手架与构建配置
-- 5 个页面路由和 `ROUTE` 常量
-- 7 个共享组件
-- 最近一次检测结果缓存
-- 跨角色类型骨架
-- AI Agent 快速定位说明
-
-R3 已完成并合并：脚手架、路由、共享组件、结果缓存。
-
-## 如何运行
+## Quick Start
 
 安装依赖：
 
@@ -30,7 +29,7 @@ R3 已完成并合并：脚手架、路由、共享组件、结果缓存。
 npm install
 ```
 
-启动开发环境：
+启动本地开发环境：
 
 ```bash
 npm run dev
@@ -44,16 +43,35 @@ npm run build
 
 看到 `built in ...` 且没有报错，即表示构建通过。
 
-## 文档入口
+## Project Structure
 
-给各成员 AI Agent 的快速定位文档在：
+```text
+src/
+├── api/          # GitHub 数据获取与 Token 相关逻辑
+├── engine/       # 检测规则、评分、建议和报告生成
+├── pages/        # 首页、结果页、报告页、历史页、Token 页
+├── components/   # 共享 UI 组件
+├── router/       # 路由常量
+├── store/        # 结果缓存与历史存储
+├── styles/       # 全局样式
+├── types/        # 跨模块共享类型
+└── utils/        # 通用工具目录
+```
+
+## Documentation
+
+项目协作文档集中放在 `docs/`：
 
 ```text
 docs/AI_AGENT_GUIDE.md
+docs/R3_INTERFACE.md
 ```
 
-该文档用于说明代码归属、接口边界、优先阅读文件，以及各角色使用共享组件、路由和缓存的方式。
+- `docs/AI_AGENT_GUIDE.md`：给各成员 AI Agent 使用的快速定位说明。
+- `docs/R3_INTERFACE.md`：R3 提供的路由、共享组件和结果缓存接口说明。
 
-## 大模型接口归属
+## Scope
 
-如果项目接入大模型辅助开源检查，大模型调用、Prompt 组织和 AI 结果解析归 R2 分析引擎层负责。R3 不在组件、路由或缓存中直接调用大模型服务，也不要在前端代码中硬编码任何大模型 API Key。
+当前版本聚焦 GitHub 公开仓库的开源规范自查。MVP 阶段不包含用户账号、服务端数据库、云端同步、多仓库批量检测或自动修复。
+
+如果后续接入大模型辅助开源检查，大模型调用、Prompt 组织和 AI 结果解析归分析引擎层负责；不要在前端代码中硬编码任何大模型 API Key。
