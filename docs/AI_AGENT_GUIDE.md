@@ -4,16 +4,10 @@
 
 ## 启动前先读
 
-1. `README.md`：确认当前分支和项目入口。
+1. `README.md`：确认项目定位、运行方式和文档入口。
 2. `docs/AI_AGENT_GUIDE.md`：确认角色边界和文件位置。
-3. `src/types/index.ts`：跨角色类型契约，改动前必须确认影响范围。
-
-## 分支约定
-
-- `main`：主分支，目前只放仓库说明，不直接开发。
-- `r3/scaffold-components`：R3 脚手架、路由、共享组件和结果缓存分支。
-
-其他成员应从自己的功能分支开发，不要直接把业务代码推到 `main`。
+3. `docs/R3_INTERFACE.md`：如果要调用 R3 的路由、组件或缓存，先读这里。
+4. `src/types/index.ts`：跨角色类型契约，改动前必须确认影响范围。
 
 ## 目录归属
 
@@ -22,9 +16,9 @@
 | `src/api/index.ts` | R1 | URL 解析、GitHub API、Token 读写 |
 | `src/engine/index.ts` | R2 | 检测规则、评分、建议、Markdown 报告生成 |
 | `src/engine/aiReview.ts` | R2 | 如需接入大模型，建议由 R2 新增并维护 |
-| `src/router/routes.ts` | R3 | `ROUTE` 常量，所有页面跳转复用 |
-| `src/components/` | R3 | 共享 UI 组件 |
-| `src/store/resultCache.ts` | R3 | 最近一次检测结果缓存，R4 写、R5 读 |
+| `src/router/routes.ts` | R3 | `ROUTE` 常量，详见 `docs/R3_INTERFACE.md` |
+| `src/components/` | R3 | 共享 UI 组件，详见 `docs/R3_INTERFACE.md` |
+| `src/store/resultCache.ts` | R3 | 最近一次检测结果缓存，详见 `docs/R3_INTERFACE.md` |
 | `src/pages/HomePage.tsx` | R4 | 首页 |
 | `src/pages/ResultPage.tsx` | R4 | 检测结果页和主流程集成 |
 | `src/pages/ReportPage.tsx` | R5 | Markdown 报告页 |
@@ -57,47 +51,15 @@ npm run build
 
 ## 跨角色接口速查
 
-### R3 路由
+R3 路由、共享组件和结果缓存接口已单独整理到：
 
-```ts
-import { ROUTE } from '@/router/routes'
+```text
+docs/R3_INTERFACE.md
 ```
 
-当前路由：
+其他成员调用 R3 能力前，优先读取该文档。
 
-- `ROUTE.HOME`
-- `ROUTE.RESULT`
-- `ROUTE.REPORT`
-- `ROUTE.HISTORY`
-- `ROUTE.TOKEN`
-
-### R3 结果缓存
-
-```ts
-import { setLastResult, getLastResult, clearLastResult } from '@/store/resultCache'
-```
-
-- R4 检测完成后写入：`setLastResult(result)`
-- R5 报告页读取：`getLastResult()`
-- 必要时清除：`clearLastResult()`
-
-### R3 共享组件
-
-```ts
-import {
-  PageLayout,
-  ScoreDisplay,
-  StatusIcon,
-  LevelTag,
-  LoadingState,
-  ErrorState,
-  EmptyState,
-} from '@/components'
-```
-
-组件 props 以对应组件文件中的 `Props` 类型为准。
-
-### 大模型接口边界
+## 大模型接口边界
 
 如果团队决定接入大模型辅助检查，推荐边界如下：
 
