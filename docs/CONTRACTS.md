@@ -15,7 +15,7 @@
 | 语言 | **TypeScript** | 编译器自动检查跨角色契约遵守情况 |
 | CSS 方案 | **CSS Modules + CSS 变量** | Vite 原生支持，零额外依赖 |
 | 路由 | **React Router v6** | 5 个页面的标准方案 |
-| Markdown 渲染 | **react-markdown** | 一个组件渲染一个字符串，API 极简 |
+| Markdown 渲染 | **react-markdown** | ⚠️ 尚未安装，R5 开始前需执行 `npm install react-markdown` |
 
 ### CSS 变量规范
 
@@ -174,7 +174,7 @@ function analyze(data: GithubData): AnalysisResult;
 #### ROUTE 常量
 
 ```typescript
-// src/routes.ts — 所有者：R3
+// src/router/routes.ts — 所有者：R3
 const ROUTE = {
   HOME:    '/',
   RESULT:  '/result',
@@ -213,7 +213,7 @@ interface EmptyStateProps     { text: string; action?: { label: string; onClick:
 
 ### R4 导出
 
-R4 是集成终端——它消费 R1/R2/R3 的导出，但**不对外导出任何共享契约**。只有两个页面组件（`HomePage`、`ResultPage`）挂在路由上，被 R3 的路由表引用。
+R4 是集成终端——它消费 R1/R2/R3 的导出，但**不对外导出任何共享契约**。只有两个页面组件（`HomePage`、`ResultPage`）挂在路由上，被 R3 的 App.tsx 引用。
 
 ---
 
@@ -257,11 +257,13 @@ src/
 ├── api/            ← R1：GitHub API 调用、URL 解析、Token 管理
 ├── engine/         ← R2：检测逻辑、评分、建议、报告生成
 ├── components/     ← R3：7 个通用 UI 组件
-├── pages/          ← R4（Home.tsx, Result.tsx）+ R5（Report.tsx, History.tsx, Token.tsx）
+├── pages/          ← R4（HomePage.tsx, ResultPage.tsx）+ R5（ReportPage.tsx, HistoryPage.tsx, TokenPage.tsx）
+├── router/         ← R3：ROUTE 常量 + 路由表定义
 ├── store/          ← R3：结果缓存
+├── styles/         ← R3：全局样式 + CSS 变量
 ├── types/          ← 共享类型定义（每个类型只在一个文件中定义）
 ├── utils/          ← R5：localStorage 工具
-├── App.tsx         ← R3：根组件 + 路由配置
+├── App.tsx         ← R3：根组件 + 路由注册
 └── main.tsx        ← R3：入口文件
 ```
 
