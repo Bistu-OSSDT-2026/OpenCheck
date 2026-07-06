@@ -6,7 +6,7 @@
 
 1. `README.md`：确认项目定位、运行方式和文档入口。
 2. `docs/AI_AGENT_GUIDE.md`：确认角色边界和文件位置。
-3. `docs/R3_INTERFACE.md`：如果要调用 R3 的路由、组件或缓存，先读这里。
+3. `docs/notes/R3/R3_INTERFACE.md`：如果要调用 R3 的路由、组件或缓存，先读这里。
 4. `src/types/index.ts`：跨角色类型契约，改动前必须确认影响范围。
 
 ## 目录归属
@@ -16,9 +16,9 @@
 | `src/api/index.ts` | R1 | URL 解析、GitHub API、Token 读写 |
 | `src/engine/index.ts` | R2 | 检测规则、评分、建议、Markdown 报告生成 |
 | `src/engine/aiReview.ts` | R2 | 如需接入大模型，建议由 R2 新增并维护 |
-| `src/router/routes.ts` | R3 | `ROUTE` 常量，详见 `docs/R3_INTERFACE.md` |
-| `src/components/` | R3 | 共享 UI 组件，详见 `docs/R3_INTERFACE.md` |
-| `src/store/resultCache.ts` | R3 | 最近一次检测结果缓存，详见 `docs/R3_INTERFACE.md` |
+| `src/router/routes.ts` | R3 | `ROUTE` 常量，详见 `docs/notes/R3/R3_INTERFACE.md` |
+| `src/components/` | R3 | 共享 UI 组件，详见 `docs/notes/R3/R3_INTERFACE.md` |
+| `src/store/resultCache.ts` | R3 | 最近一次检测结果缓存，详见 `docs/notes/R3/R3_INTERFACE.md` |
 | `src/pages/HomePage.tsx` | R4 | 首页 |
 | `src/pages/ResultPage.tsx` | R4 | 检测结果页和主流程集成 |
 | `src/pages/ReportPage.tsx` | R5 | Markdown 报告页 |
@@ -54,7 +54,7 @@ npm run build
 R3 路由、共享组件和结果缓存接口已单独整理到：
 
 ```text
-docs/R3_INTERFACE.md
+docs/notes/R3/R3_INTERFACE.md
 ```
 
 其他成员调用 R3 能力前，优先读取该文档。
