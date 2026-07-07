@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { PageLayout, EmptyState } from '@/components'
 import { getLastResult } from '@/store/resultCache'
 
@@ -62,15 +63,15 @@ export default function ReportPage() {
   return (
     <PageLayout title="检测报告">
       <div className="report-toolbar">
-        <button className="report-btn" onClick={handleCopy}>
+        <button className="report-btn" type="button" onClick={handleCopy}>
           {copied ? '已复制' : '复制报告'}
         </button>
-        <button className="report-btn report-btn--secondary" onClick={handleDownload}>
+        <button className="report-btn report-btn--secondary" type="button" onClick={handleDownload}>
           下载报告
         </button>
       </div>
       <div className="report-content">
-        <ReactMarkdown>{result.report}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.report}</ReactMarkdown>
       </div>
     </PageLayout>
   )

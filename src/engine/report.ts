@@ -10,11 +10,11 @@ import type { AnalysisResult, CheckItem, Suggestion } from '@/types';
 function statusLabel(status: string): string {
   switch (status) {
     case 'pass':
-      return '✅ 通过';
+      return '通过';
     case 'partial':
-      return '⚠️ 部分通过';
+      return '部分通过';
     case 'fail':
-      return '❌ 未通过';
+      return '未通过';
     default:
       return status;
   }
@@ -51,7 +51,7 @@ function buildChecksTable(checks: CheckItem[]): string {
  */
 function buildSuggestionsList(suggestions: Suggestion[]): string {
   if (suggestions.length === 0) {
-    return '🎉 你的项目在检测范围内没有明显缺失，继续保持！';
+    return '你的项目在检测范围内没有明显缺失，继续保持！';
   }
   return suggestions
     .map((s, i) => `${i + 1}. **${s.checkName}**：${s.content}`)
@@ -90,7 +90,7 @@ export function generateReport(result: Omit<AnalysisResult, 'report'>): string {
     '',
     '---',
     '',
-    '## 📋 仓库基本信息',
+    '## 仓库基本信息',
     '',
     `| 项目 | 信息 |`,
     `|------|------|`,
@@ -106,19 +106,19 @@ export function generateReport(result: Omit<AnalysisResult, 'report'>): string {
     '',
     '---',
     '',
-    '## 📊 检测总评分',
+    '## 检测总评分',
     '',
     `**总分：${score.total} / ${score.maxScore} — ${score.level}**`,
     '',
     '---',
     '',
-    '## 📝 检测明细',
+    '## 检测明细',
     '',
     buildChecksTable(checks),
     '',
     '---',
     '',
-    '## 💡 改进建议',
+    '## 改进建议',
     '',
     buildSuggestionsList(suggestions),
     '',
