@@ -13,7 +13,7 @@
 | 框架 | **React** (≥18) | AI 训练数据最多，5 人团队最常见 |
 | 构建工具 | **Vite** | `npm create vite@latest` 一个命令搭建 |
 | 语言 | **TypeScript** | 编译器自动检查跨角色契约遵守情况 |
-| CSS 方案 | **CSS Modules + CSS 变量** | Vite 原生支持，零额外依赖 |
+| CSS 方案 | **全局 CSS + CSS 变量** | `src/styles/global.css` 统一管理基础样式和共享组件样式，零额外依赖 |
 | 路由 | **React Router v6** | 5 个页面的标准方案 |
 | Markdown 渲染 | **react-markdown** | 已安装，R5 报告页使用 |
 
@@ -23,16 +23,10 @@ R3 在全局样式文件中定义以下变量，全项目统一引用：
 
 ```css
 :root {
-  --color-excellent: #22c55e;   /* 优秀 - 90-100 */
-  --color-good:      #3b82f6;   /* 较完整 - 75-89 */
-  --color-adequate:  #f97316;   /* 基本可用 - 60-74 */
-  --color-poor:      #ef4444;   /* 需要完善 - <60 */
-  --color-bg:        #0f172a;   /* 主背景 */
-  --color-surface:   #1e293b;   /* 卡片背景 */
-  --color-text:      #f1f5f9;   /* 正文 */
-  --color-muted:     #94a3b8;   /* 辅助文字 */
-  --font-mono:       'JetBrains Mono', 'Fira Code', monospace;
-  --font-sans:       'Inter', system-ui, sans-serif;
+  --level-excellent: #52c41a;   /* 优秀 - 绿 */
+  --level-good:      #1677ff;   /* 较完整 - 蓝 */
+  --level-basic:     #faad14;   /* 基本可用 - 橙 */
+  --level-poor:      #f5222d;   /* 需要完善 - 红 */
 }
 ```
 
@@ -230,11 +224,11 @@ function clearLastResult(): void;
 // src/components/ — 所有者：R3
 interface ScoreDisplayProps   { score: number; maxScore: number; level: AnalysisResult['score']['level'] }
 interface StatusIconProps     { status: 'pass' | 'partial' | 'fail' }
-interface LevelTagProps       { level: '优秀' | '较完整' | '基本可用' | '需要完善' }
-interface PageLayoutProps     { children: React.ReactNode; title?: string }
+interface LevelTagProps       { level: AnalysisResult['score']['level'] }
+interface PageLayoutProps     { title: string; children: React.ReactNode; showBack?: boolean }
 interface LoadingStateProps   { text?: string }
-interface ErrorStateProps     { error: ApiError; onRetry?: () => void }
-interface EmptyStateProps     { text: string; action?: { label: string; onClick: () => void } }
+interface ErrorStateProps     { error: string; onRetry?: () => void; actionText?: string; onAction?: () => void }
+interface EmptyStateProps     { text: string; action?: React.ReactNode }
 ```
 
 ---
@@ -260,7 +254,7 @@ interface HistoryRecord {
   repoUrl: string;
   repoName: string;          // "owner/repo"
   score: number;
-  level: string;             // AnalysisResult.score.level
+  level: '优秀' | '较完整' | '基本可用' | '需要完善';
   timestamp: string;         // ISO 时间戳
   checkSummary: CheckSummaryItem[];
 }
@@ -276,7 +270,7 @@ function deleteHistory(repoUrl: string): void;
 function clearHistory(): void;
 ```
 
-> ⚠️ 当前为占位实现（throw Error），待 R5 接手后实现真实逻辑。localStorage key 使用 `'opencheck_history'`。
+当前已由 R5 实现真实 localStorage 存储逻辑，key 使用 `'opencheck_history'`。同一 `repoUrl` 重复保存会覆盖旧记录，读取时按检测时间倒序返回。
 
 `saveHistory` 由 R5 内部从 `AnalysisResult` 提取字段组装 `HistoryRecord`。**R4 只传 `(repoUrl, result)`，不自己拼接 HistoryRecord。**
 
@@ -289,9 +283,9 @@ src/
 ├── api/            ← R1：GitHub API 调用（githubApi.ts）、URL 解析（parseRepoUrl.ts）、Token（tokenStorage.ts）、Mock 数据
 ├── engine/         ← R2：analyze.ts + 文件检测 + README 检测 + 评分 + 建议 + 报告生成
 ├── components/     ← R3：7 个通用 UI 组件 + index.ts 统一导出
-├── pages/          ← R4（HomePage.tsx, ResultPage.tsx）[占位]+ R5（ReportPage.tsx, HistoryPage.tsx, TokenPage.tsx）[占位]
+├── pages/          ← R4（HomePage.tsx, ResultPage.tsx）+ R5（ReportPage.tsx, HistoryPage.tsx, TokenPage.tsx）
 ├── router/         ← R3：ROUTE 常量（routes.ts）
-├── store/          ← R3（resultCache.ts）+ R5（history.ts 占位）
+├── store/          ← R3（resultCache.ts）+ R5（history.ts）
 ├── styles/         ← R3：global.css（CSS 变量 + 全局样式）
 ├── types/          ← R3 维护骨架，各角色类型定义（index.ts）
 ├── utils/          ← 预留（当前仅有 .gitkeep）
