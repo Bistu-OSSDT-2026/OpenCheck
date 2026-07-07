@@ -24,6 +24,14 @@ OpenCheck 是一个面向开源项目维护者的纯前端体检助手。输入 
 
 ## Quick Start
 
+Windows 一键启动：
+
+```text
+双击 start-opencheck.bat
+```
+
+脚本会在缺少 `node_modules` 时自动执行 `npm ci`，然后启动本地开发环境并打开浏览器。
+
 安装依赖：
 
 ```bash
