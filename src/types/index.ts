@@ -128,7 +128,7 @@ export interface HistoryRecord {
   repoUrl: string
   repoName: string
   score: number
-  level: string
+  level: '优秀' | '较完整' | '基本可用' | '需要完善'
   timestamp: string
   checkSummary: CheckSummaryItem[]
 }

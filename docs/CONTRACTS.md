@@ -15,7 +15,7 @@
 | 语言 | **TypeScript** | 编译器自动检查跨角色契约遵守情况 |
 | CSS 方案 | **CSS Modules + CSS 变量** | Vite 原生支持，零额外依赖 |
 | 路由 | **React Router v6** | 5 个页面的标准方案 |
-| Markdown 渲染 | **react-markdown** | ⚠️ 尚未安装，R5 开始前需执行 `npm install react-markdown` |
+| Markdown 渲染 | **react-markdown** | 已安装，R5 报告页使用 |
 
 ### CSS 变量规范
 
