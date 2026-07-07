@@ -30,7 +30,9 @@ Windows 一键启动：
 双击 start-opencheck.bat
 ```
 
-脚本会在缺少 `node_modules` 时自动执行 `npm ci`，然后启动本地开发环境并打开浏览器。
+脚本会在缺少 `node_modules` 时自动执行 `npm ci`，然后固定使用 `http://127.0.0.1:5173/` 启动本地开发环境并打开浏览器。
+
+如果该地址已经有 OpenCheck 开发服务在运行，脚本会直接打开已有页面，避免因为端口变化导致浏览器 localStorage 中的 Token 或历史记录读不到。
 
 安装依赖：
 

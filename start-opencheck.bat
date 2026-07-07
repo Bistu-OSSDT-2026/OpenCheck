@@ -2,6 +2,9 @@
 setlocal
 
 cd /d "%~dp0"
+set "HOST=127.0.0.1"
+set "PORT=5173"
+set "APP_URL=http://%HOST%:%PORT%/"
 
 echo.
 echo ==============================
@@ -31,11 +34,20 @@ if not exist "node_modules" (
 )
 
 echo.
-echo [INFO] Starting OpenCheck dev server...
-echo [INFO] The browser should open automatically. If not, use the URL printed below.
+echo [INFO] Checking %APP_URL% ...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $response = Invoke-WebRequest -UseBasicParsing -Uri '%APP_URL%' -TimeoutSec 2; if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500 -and $response.Content -like '*OpenCheck*') { exit 0 } exit 1 } catch { exit 1 }" >nul 2>nul
+if not errorlevel 1 (
+  echo [INFO] Existing OpenCheck dev server found. Opening browser...
+  start "" "%APP_URL%"
+  exit /b 0
+)
+
+echo.
+echo [INFO] Starting OpenCheck dev server at %APP_URL% ...
+echo [INFO] The browser should open automatically. If not, use %APP_URL%.
 echo.
 
-call npm run dev -- --host 127.0.0.1 --open
+call npm run dev -- --host %HOST% --port %PORT% --strictPort --open /
 
 echo.
 echo [INFO] OpenCheck dev server stopped.
