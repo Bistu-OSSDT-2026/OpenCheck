@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { PageLayout, EmptyState } from '@/components'
 import { getLastResult } from '@/store/resultCache'
 
@@ -70,7 +71,7 @@ export default function ReportPage() {
         </button>
       </div>
       <div className="report-content">
-        <ReactMarkdown>{result.report}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.report}</ReactMarkdown>
       </div>
     </PageLayout>
   )
