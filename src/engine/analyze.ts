@@ -13,9 +13,9 @@ import { generateReport } from './report';
  * 对 GitHub 仓库数据执行完整的开源规范性分析
  *
  * 流程：
- * 1. 执行文件存在性检测（5 项）
- * 2. 执行 README 内容检测（4 项）
- * 3. 组合 9 个 CheckItem
+ * 1. 执行文件存在性检测（7 项）
+ * 2. 执行 README 内容检测（6 项）
+ * 3. 组合 13 个 CheckItem（其中 9 项计入评分，4 项为信息性检测）
  * 4. 计算总分和等级
  * 5. 生成改进建议
  * 6. 生成 Markdown 报告
@@ -35,15 +35,15 @@ import { generateReport } from './report';
 export function analyze(githubData: GithubData): AnalysisResult {
   const { repoInfo, fileList, readmeContent } = githubData;
 
-  // 1. 文件存在性检测（5 项）
+  // 1. 文件存在性检测（7 项：5 项评分 + 2 项信息性）
   const fileChecks = runFileChecks(fileList);
 
-  // 2. README 内容检测（4 项）
+  // 2. README 内容检测（6 项：4 项评分 + 2 项信息性）
   //    边界：若 README.md 不存在，readmeContent 可能为空，
   //          readmeChecks 内部会将空内容全部判定为 fail
   const readmeChecks = runReadmeChecks(readmeContent);
 
-  // 3. 组合 9 个 CheckItem
+  // 3. 组合 13 个 CheckItem（9 项评分 + 4 项信息性）
   const checks = [...fileChecks, ...readmeChecks];
 
   // 4. 计算总分和等级

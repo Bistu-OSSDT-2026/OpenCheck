@@ -30,6 +30,7 @@ export const mockGithubData: GithubData = {
 
   fileList: [
     { name: '.editorconfig', path: '.editorconfig', type: 'file' },
+    { name: '.github', path: '.github', type: 'dir' },
     { name: '.gitignore', path: '.gitignore', type: 'file' },
     { name: 'CHANGELOG.md', path: 'CHANGELOG.md', type: 'file' },
     { name: 'CODE_OF_CONDUCT.md', path: 'CODE_OF_CONDUCT.md', type: 'file' },
@@ -112,6 +113,10 @@ and the process for submitting pull requests.
 
 React releases are published to npm. See the [release workflow](./scripts/release/README.md)
 for details.
+
+## Screenshots
+
+![React DevTools](https://react.dev/images/home/dom_manipulation.png)
 
 ## License
 
