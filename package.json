@@ -6,7 +6,7 @@
   "description": "OpenCheck — 开源项目体检助手（纯前端）",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
