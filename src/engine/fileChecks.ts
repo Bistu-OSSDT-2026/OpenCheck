@@ -120,9 +120,57 @@ export function checkChangelog(fileList: FileItem[]): CheckItem {
   };
 }
 
+/** 检测依赖声明文件是否存在 */
+export function checkDependencyFile(fileList: FileItem[]): CheckItem {
+  const patterns = [
+    'package.json',
+    'requirements.txt',
+    'go.mod',
+    'Cargo.toml',
+    'pom.xml',
+    'build.gradle',
+    'build.gradle.kts',
+    'settings.gradle',
+    'Gemfile',
+    'mix.exs',
+    'rebar.config',
+    'CMakeLists.txt',
+    'Makefile',
+  ];
+  const found = findFile(fileList, patterns);
+  return {
+    name: '依赖声明文件',
+    category: 'file',
+    status: found ? 'pass' : 'fail',
+    score: found ? 0 : 0,   // PRD 评分表未给此项独立分值，暂为信息性检测
+    maxScore: 0,
+  };
+}
+
+/**
+ * 检测 .github/workflows/ 目录是否存在且非空
+ *
+ * 注意：R1 的 GithubData.fileList 仅包含根目录内容，
+ * 此处仅能判断 .github 目录是否存在。无法验证 workflows 子目录是否非空。
+ * 实际非空校验需 R1 扩展 fileList 范围或提供额外 API。
+ */
+export function checkWorkflowsDir(fileList: FileItem[]): CheckItem {
+  // 查找 .github 目录（根目录下）
+  const hasGithubDir = fileList.some(
+    (f) => f.type === 'dir' && f.name.toLowerCase() === '.github',
+  );
+  return {
+    name: '.github/workflows/',
+    category: 'file',
+    status: hasGithubDir ? 'pass' : 'fail',
+    score: hasGithubDir ? 0 : 0,  // PRD 评分表未给此项独立分值，暂为信息性检测
+    maxScore: 0,
+  };
+}
+
 /**
  * 执行所有文件存在性检测
- * 返回 5 个 CheckItem（README、LICENSE、.gitignore、CONTRIBUTING、CHANGELOG）
+ * 返回 7 个 CheckItem
  */
 export function runFileChecks(fileList: FileItem[]): CheckItem[] {
   return [
@@ -131,5 +179,7 @@ export function runFileChecks(fileList: FileItem[]): CheckItem[] {
     checkGitignore(fileList),
     checkContributing(fileList),
     checkChangelog(fileList),
+    checkDependencyFile(fileList),
+    checkWorkflowsDir(fileList),
   ];
 }

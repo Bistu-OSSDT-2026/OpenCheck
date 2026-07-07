@@ -35,6 +35,18 @@ const SUGGESTION_TEMPLATES: Record<string, string> = {
 
   'CHANGELOG.md':
     '建议添加更新日志（CHANGELOG.md），按版本记录新增功能、修复的 Bug 和 Breaking Changes。推荐遵循 Keep a Changelog 格式（keepachangelog.com），方便用户了解项目演进。',
+
+  '依赖声明文件':
+    '建议添加依赖声明文件（如 package.json、requirements.txt、go.mod、Cargo.toml 等），明确列出项目的依赖项和版本要求，方便他人快速搭建开发环境。',
+
+  '.github/workflows/':
+    '建议配置 CI/CD 工作流（.github/workflows/*.yml），自动化测试、构建、部署流程。GitHub Actions 提供了丰富的模板，可快速上手。',
+
+  '截图/演示':
+    '建议在 README 中添加项目截图或演示 GIF，让潜在用户在阅读文字前先直观了解项目的样子。可使用 `![描述](图片链接)` 语法嵌入图片。',
+
+  '使用说明':
+    '建议在 README 中补充更详细的使用说明，包括 API 文档、配置说明、示例代码等。丰富的使用文档能降低新用户的上手难度。',
 };
 
 /**

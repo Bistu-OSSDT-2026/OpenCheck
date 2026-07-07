@@ -298,6 +298,87 @@ export function checkDeployInstructions(readmeContent: string): CheckItem {
   };
 }
 
+/** 检测 README 中的「截图/演示」 */
+export function checkScreenshots(readmeContent: string): CheckItem {
+  if (!readmeContent || readmeContent.trim().length === 0) {
+    return {
+      name: '截图/演示',
+      category: 'readme',
+      status: 'fail',
+      score: 0,
+      maxScore: 0,  // PRD 评分表未给此项独立分值，暂为信息性检测
+    };
+  }
+
+  // 检测 Markdown 图片语法 ![alt](url)
+  const hasMarkdownImage = /!\[.*?\]\(.+?\)/.test(readmeContent);
+  // 检测 HTML <img> 标签
+  const hasHtmlImage = /<img\s[^>]*src\s*=\s*["'][^"']+["']/i.test(readmeContent);
+
+  const hasImage = hasMarkdownImage || hasHtmlImage;
+
+  return {
+    name: '截图/演示',
+    category: 'readme',
+    status: hasImage ? 'pass' : 'fail',
+    score: 0,
+    maxScore: 0,
+  };
+}
+
+/** 检测 README 中的「使用说明」—— 整体内容丰富度判断 */
+export function checkUsageInstructions(readmeContent: string): CheckItem {
+  if (!readmeContent || readmeContent.trim().length === 0) {
+    return {
+      name: '使用说明',
+      category: 'readme',
+      status: 'fail',
+      score: 0,
+      maxScore: 0,  // PRD 评分表未给此项独立分值，暂为信息性检测
+    };
+  }
+
+  const content = readmeContent.trim();
+  const totalLength = content.length;
+
+  // 统计代码块数量（```围栏式）
+  const codeBlockMatches = content.match(/```[\s\S]*?```/gm);
+  const codeBlockCount = codeBlockMatches ? codeBlockMatches.length : 0;
+
+  // 统计标题数量
+  const headingMatches = content.match(/^#{1,6}\s+/gm);
+  const headingCount = headingMatches ? headingMatches.length : 0;
+
+  // 统计列表项数量（- 或 * 开头的行）
+  const listItemMatches = content.match(/^[\t ]*[-*+]\s+/gm);
+  const listItemCount = listItemMatches ? listItemMatches.length : 0;
+
+  // 启发式判定：
+  // - pass: 总长度 >= 1500 字 OR (代码块 >= 3 且 标题 >= 4)
+  // - partial: 总长度 >= 500 字 OR (代码块 >= 1 且 标题 >= 2)
+  // - fail: 内容过于简短
+  let status: CheckStatus;
+  if (
+    totalLength >= 1500 ||
+    (codeBlockCount >= 3 && headingCount >= 4) ||
+    (headingCount >= 3 && listItemCount >= 5)
+  ) {
+    status = 'pass';
+  } else if (totalLength >= 500 || (codeBlockCount >= 1 && headingCount >= 2)) {
+    status = 'partial';
+  } else {
+    status = 'fail';
+  }
+
+  return {
+    name: '使用说明',
+    category: 'readme',
+    status,
+    score: 0,
+    maxScore: 0,
+  };
+}
+
 /**
  * 执行所有 README 内容检测
  *
@@ -315,6 +396,8 @@ export function runReadmeChecks(readmeContent: string | null | undefined): Check
       { name: '技术栈说明', category: 'readme', status: 'fail', score: 0, maxScore: 10 },
       { name: '项目结构说明', category: 'readme', status: 'fail', score: 0, maxScore: 10 },
       { name: '部署说明', category: 'readme', status: 'fail', score: 0, maxScore: 5 },
+      { name: '截图/演示', category: 'readme', status: 'fail', score: 0, maxScore: 0 },
+      { name: '使用说明', category: 'readme', status: 'fail', score: 0, maxScore: 0 },
     ];
   }
 
@@ -323,5 +406,7 @@ export function runReadmeChecks(readmeContent: string | null | undefined): Check
     checkTechStack(content),
     checkProjectStructure(content),
     checkDeployInstructions(content),
+    checkScreenshots(content),
+    checkUsageInstructions(content),
   ];
 }
