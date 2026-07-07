@@ -20,13 +20,24 @@ OpenCheck 是一个面向开源项目维护者的纯前端体检助手。输入 
 - TypeScript
 - Vite
 - React Router
+- React Markdown
 
 ## Quick Start
+
+Windows 一键启动：
+
+```text
+双击 start-opencheck.bat
+```
+
+脚本会在缺少 `node_modules` 时自动执行 `npm ci`，然后固定使用 `http://127.0.0.1:5173/` 启动本地开发环境并打开浏览器。
+
+如果该地址已经有 OpenCheck 开发服务在运行，脚本会直接打开已有页面，避免因为端口变化导致浏览器 localStorage 中的 Token 或历史记录读不到。
 
 安装依赖：
 
 ```bash
-npm install
+npm ci
 ```
 
 启动本地开发环境：
@@ -64,11 +75,17 @@ src/
 
 ```text
 docs/AI_AGENT_GUIDE.md
-docs/R3_INTERFACE.md
+docs/PRD_OpenCheck.md
+docs/WORK_DIVISION.md
+docs/CONTRACTS.md
+docs/notes/R3/R3_INTERFACE.md
 ```
 
 - `docs/AI_AGENT_GUIDE.md`：给各成员 AI Agent 使用的快速定位说明。
-- `docs/R3_INTERFACE.md`：R3 提供的路由、共享组件和结果缓存接口说明。
+- `docs/PRD_OpenCheck.md`：产品需求和 MVP 范围。
+- `docs/WORK_DIVISION.md`：5 人分工与 5 日开发计划。
+- `docs/CONTRACTS.md`：跨角色共享契约和当前技术规格。
+- `docs/notes/R3/R3_INTERFACE.md`：R3 的路由、共享组件和结果缓存个人接口备注。
 
 ## Scope
 

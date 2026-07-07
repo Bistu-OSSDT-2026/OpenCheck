@@ -71,11 +71,11 @@ export default function TokenPage() {
             placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
           />
           <div className="token-buttons">
-            <button className="token-save-btn" onClick={handleSave}>
+            <button className="token-save-btn" type="button" onClick={handleSave}>
               {saved ? '已保存' : '保存'}
             </button>
             {token && (
-              <button className="token-clear-btn" onClick={handleClear}>
+              <button className="token-clear-btn" type="button" onClick={handleClear}>
                 清除 Token
               </button>
             )}

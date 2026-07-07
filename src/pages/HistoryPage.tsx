@@ -52,32 +52,36 @@ export default function HistoryPage() {
     <PageLayout title="历史记录">
       <div className="history-actions">
         <span className="history-count">共 {records.length} 条记录</span>
-        <button className="history-clear-btn" onClick={handleClearAll}>
+        <button className="history-clear-btn" type="button" onClick={handleClearAll}>
           清空全部历史
         </button>
       </div>
       <ul className="history-list">
         {records.map((r) => (
-          <li key={r.repoUrl} className="history-item" onClick={() => handleClick(r)}>
-            <div className="history-item__main">
-              <span className="history-item__name">{r.repoName}</span>
-              <LevelTag level={r.level} />
-            </div>
-            <div className="history-item__meta">
-              <span className="history-item__score">得分 {r.score}</span>
-              <span className="history-item__time">
-                {new Date(r.timestamp).toLocaleString('zh-CN')}
+          <li key={r.repoUrl} className="history-item">
+            <button
+              className="history-item__content"
+              type="button"
+              onClick={() => handleClick(r)}
+            >
+              <span className="history-item__main">
+                <span className="history-item__name">{r.repoName}</span>
+                <LevelTag level={r.level} />
               </span>
-              <button
-                className="history-item__delete"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDelete(r.repoUrl, r.repoName)
-                }}
-              >
-                删除
-              </button>
-            </div>
+              <span className="history-item__meta">
+                <span className="history-item__score">得分 {r.score}</span>
+                <span className="history-item__time">
+                  {new Date(r.timestamp).toLocaleString('zh-CN')}
+                </span>
+              </span>
+            </button>
+            <button
+              className="history-item__delete"
+              type="button"
+              onClick={() => handleDelete(r.repoUrl, r.repoName)}
+            >
+              删除
+            </button>
           </li>
         ))}
       </ul>
