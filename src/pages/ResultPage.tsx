@@ -174,10 +174,10 @@ export default function ResultPage() {
             level={result.score.level}
           />
           <div className="result-summary__actions">
-            <button className="result-btn" onClick={() => handleViewReport(result)}>
+            <button className="result-btn" type="button" onClick={() => handleViewReport(result)}>
               查看报告
             </button>
-            <button className="result-btn result-btn--secondary" onClick={() => navigate(ROUTE.HOME)}>
+            <button className="result-btn result-btn--secondary" type="button" onClick={() => navigate(ROUTE.HOME)}>
               检测其他仓库
             </button>
           </div>

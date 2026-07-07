@@ -63,10 +63,10 @@ export default function ReportPage() {
   return (
     <PageLayout title="检测报告">
       <div className="report-toolbar">
-        <button className="report-btn" onClick={handleCopy}>
+        <button className="report-btn" type="button" onClick={handleCopy}>
           {copied ? '已复制' : '复制报告'}
         </button>
-        <button className="report-btn report-btn--secondary" onClick={handleDownload}>
+        <button className="report-btn report-btn--secondary" type="button" onClick={handleDownload}>
           下载报告
         </button>
       </div>
