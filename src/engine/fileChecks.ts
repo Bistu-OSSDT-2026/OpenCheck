@@ -40,6 +40,10 @@ export function checkReadme(fileList: FileItem[]): CheckItem {
     status: found ? 'pass' : 'fail',
     score: found ? 20 : 0,
     maxScore: 20,
+    reason: found
+      ? `根目录存在 ${found}，满足开源项目基础说明文档要求。`
+      : '根目录未发现 README 文件，访问者无法快速了解项目用途和使用方式。',
+    evidence: found ? [`命中文件：${found}`] : ['期望文件：README.md / README / README.txt'],
   };
 }
 
@@ -64,6 +68,10 @@ export function checkLicense(fileList: FileItem[]): CheckItem {
     status: found ? 'pass' : 'fail',
     score: found ? 15 : 0,
     maxScore: 15,
+    reason: found
+      ? `根目录存在 ${found}，项目使用权限边界更清楚。`
+      : '根目录未发现 LICENSE 或 COPYING 文件，使用者难以判断代码授权范围。',
+    evidence: found ? [`命中文件：${found}`] : ['期望文件：LICENSE / LICENSE.md / COPYING'],
   };
 }
 
@@ -77,6 +85,10 @@ export function checkGitignore(fileList: FileItem[]): CheckItem {
     status: found ? 'pass' : 'fail',
     score: found ? 10 : 0,
     maxScore: 10,
+    reason: found
+      ? '根目录存在 .gitignore，可以减少依赖目录、构建产物和本地配置被误提交的风险。'
+      : '根目录未发现 .gitignore，依赖目录、构建产物或 IDE 配置可能被误提交。',
+    evidence: found ? [`命中文件：${found}`] : ['期望文件：.gitignore'],
   };
 }
 
@@ -96,6 +108,10 @@ export function checkContributing(fileList: FileItem[]): CheckItem {
     status: found ? 'pass' : 'fail',
     score: found ? 10 : 0,
     maxScore: 10,
+    reason: found
+      ? `根目录存在 ${found}，外部贡献者可以找到参与方式。`
+      : '根目录未发现贡献指南，新贡献者不知道如何提交 Issue、PR 或遵守项目规范。',
+    evidence: found ? [`命中文件：${found}`] : ['期望文件：CONTRIBUTING.md'],
   };
 }
 
@@ -117,6 +133,10 @@ export function checkChangelog(fileList: FileItem[]): CheckItem {
     status: found ? 'pass' : 'fail',
     score: found ? 5 : 0,
     maxScore: 5,
+    reason: found
+      ? `根目录存在 ${found}，用户可以追踪版本变化。`
+      : '根目录未发现更新日志，用户难以了解版本演进和重要变更。',
+    evidence: found ? [`命中文件：${found}`] : ['期望文件：CHANGELOG.md / CHANGES.md / RELEASES.md'],
   };
 }
 
@@ -144,6 +164,12 @@ export function checkDependencyFile(fileList: FileItem[]): CheckItem {
     status: found ? 'pass' : 'fail',
     score: found ? 0 : 0,   // PRD 评分表未给此项独立分值，暂为信息性检测
     maxScore: 0,
+    reason: found
+      ? `根目录存在 ${found}，新用户可以据此安装依赖或识别技术栈。`
+      : '根目录未发现常见依赖声明文件，项目环境搭建方式不够明确。',
+    evidence: found
+      ? [`命中文件：${found}`]
+      : ['检查范围：package.json / requirements.txt / go.mod / Cargo.toml / pom.xml 等'],
   };
 }
 
@@ -165,6 +191,12 @@ export function checkWorkflowsDir(fileList: FileItem[]): CheckItem {
     status: hasGithubDir ? 'pass' : 'fail',
     score: hasGithubDir ? 0 : 0,  // PRD 评分表未给此项独立分值，暂为信息性检测
     maxScore: 0,
+    reason: hasGithubDir
+      ? '根目录存在 .github 目录，项目可能已经配置 Issue 模板或 GitHub Actions。'
+      : '根目录未发现 .github 目录，暂未看到 GitHub 协作或自动化配置入口。',
+    evidence: hasGithubDir
+      ? ['命中目录：.github']
+      : ['期望目录：.github/workflows/（当前 API 仅读取根目录，无法深入确认非空）'],
   };
 }
 

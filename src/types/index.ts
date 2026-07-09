@@ -78,6 +78,8 @@ export interface CheckItem {
   status: CheckStatus
   score: number
   maxScore: number
+  reason: string
+  evidence?: string[]
 }
 
 /** 评分与等级 —— R2 所有 */
@@ -91,6 +93,7 @@ export interface ScoreInfo {
 export interface Suggestion {
   checkName: string
   content: string
+  template?: string
 }
 
 /**

@@ -49,6 +49,162 @@ const SUGGESTION_TEMPLATES: Record<string, string> = {
     '建议在 README 中补充更详细的使用说明，包括 API 文档、配置说明、示例代码等。丰富的使用文档能降低新用户的上手难度。',
 };
 
+const COPYABLE_TEMPLATES: Record<string, string> = {
+  'README.md': `# 项目名称
+
+一句话说明这个项目解决什么问题。
+
+## 快速开始
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+## 使用说明
+
+补充主要功能、配置项和示例。
+`,
+
+  LICENSE: `MIT License
+
+Copyright (c) 2026 项目作者
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files, to deal in the Software
+without restriction, subject to the conditions in the full MIT license text.
+`,
+
+  '运行说明': `## 快速开始
+
+\`\`\`bash
+# 安装依赖
+npm install
+
+# 启动开发环境
+npm run dev
+
+# 构建生产版本
+npm run build
+\`\`\`
+`,
+
+  '技术栈说明': `## 技术栈
+
+- 前端框架：React
+- 开发语言：TypeScript
+- 构建工具：Vite
+- 路由：React Router
+`,
+
+  '项目结构说明': `## 项目结构
+
+\`\`\`text
+src/
+├── components/  # 通用组件
+├── pages/       # 页面组件
+├── api/         # 数据请求
+├── engine/      # 核心分析逻辑
+└── styles/      # 全局样式
+\`\`\`
+`,
+
+  '.gitignore': `node_modules/
+dist/
+.env
+.env.local
+.DS_Store
+.vscode/
+`,
+
+  'CONTRIBUTING.md': `# 贡献指南
+
+感谢你愿意参与本项目。
+
+## 提交 Issue
+
+请描述问题现象、复现步骤和期望结果。
+
+## 提交 Pull Request
+
+1. Fork 本仓库
+2. 创建功能分支
+3. 完成修改并运行测试
+4. 提交 Pull Request 并说明改动内容
+`,
+
+  '部署说明': `## 部署
+
+\`\`\`bash
+npm install
+npm run build
+npm run preview
+\`\`\`
+
+部署前请确认环境变量和生产配置已经准备完成。
+`,
+
+  'CHANGELOG.md': `# Changelog
+
+## [Unreleased]
+
+### Added
+
+- 记录新增功能
+
+### Fixed
+
+- 记录修复问题
+`,
+
+  '依赖声明文件': `{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {}
+}
+`,
+
+  '.github/workflows/': `name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+`,
+
+  '截图/演示': `## 截图 / 演示
+
+![项目截图](./docs/screenshot.png)
+
+也可以补充在线演示地址或 GIF。
+`,
+
+  '使用说明': `## 使用说明
+
+### 基本用法
+
+说明用户完成一次核心操作需要哪些步骤。
+
+### 配置项
+
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| example | 示例配置 | true |
+`,
+};
+
 /**
  * 根据检测结果列表生成改进建议
  *
@@ -65,9 +221,11 @@ export function generateSuggestions(checks: CheckItem[]): Suggestion[] {
   for (const check of checks) {
     if (check.status !== 'pass') {
       const template = SUGGESTION_TEMPLATES[check.name];
+      const copyableTemplate = COPYABLE_TEMPLATES[check.name];
       suggestions.push({
         checkName: check.name,
         content: template ?? `建议完善「${check.name}」相关内容。`,
+        template: copyableTemplate,
       });
     }
   }

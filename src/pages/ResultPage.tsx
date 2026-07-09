@@ -66,6 +66,7 @@ export default function ResultPage() {
     status: 'loading',
     repoUrl,
   })
+  const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null)
 
   const runAnalysis = useCallback(async (rawUrl: string) => {
     const parsed = parseRepoUrl(rawUrl)
@@ -114,6 +115,21 @@ export default function ResultPage() {
     if (resultState.repoUrl) {
       void runAnalysis(resultState.repoUrl)
     }
+  }
+
+  const handleCopyTemplate = async (checkName: string, template: string) => {
+    try {
+      await navigator.clipboard.writeText(template)
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = template
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    setCopiedTemplate(checkName)
+    setTimeout(() => setCopiedTemplate(null), 2000)
   }
 
   if (resultState.status === 'loading') {
@@ -189,8 +205,18 @@ export default function ResultPage() {
             {result.checks.map((check) => (
               <li className="check-item" key={check.name}>
                 <div className="check-item__main">
-                  <StatusIcon status={check.status} />
-                  <span className="check-item__name">{check.name}</span>
+                  <div className="check-item__headline">
+                    <StatusIcon status={check.status} />
+                    <span className="check-item__name">{check.name}</span>
+                  </div>
+                  <p className="check-item__reason">{check.reason}</p>
+                  {check.evidence && check.evidence.length > 0 && (
+                    <ul className="check-item__evidence">
+                      {check.evidence.slice(0, 3).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <span className="check-item__score">
                   {check.score} / {check.maxScore}
@@ -210,6 +236,15 @@ export default function ResultPage() {
                 <li className="suggestion-item" key={suggestion.checkName}>
                   <h3>{suggestion.checkName}</h3>
                   <p>{suggestion.content}</p>
+                  {suggestion.template && (
+                    <button
+                      className="suggestion-template-btn"
+                      type="button"
+                      onClick={() => void handleCopyTemplate(suggestion.checkName, suggestion.template ?? '')}
+                    >
+                      {copiedTemplate === suggestion.checkName ? '已复制模板' : '复制模板'}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

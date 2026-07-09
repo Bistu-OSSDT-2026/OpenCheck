@@ -38,10 +38,12 @@ function categoryLabel(category: string): string {
  * 生成检测明细 Markdown 表格
  */
 function buildChecksTable(checks: CheckItem[]): string {
-  const header = '| 检测项 | 类别 | 结果 | 得分 |\n|--------|------|------|------|';
+  const header = '| 检测项 | 类别 | 结果 | 得分 | 判定原因 | 证据 |\n|--------|------|------|------|----------|------|';
   const rows = checks.map(
-    (c) =>
-      `| ${c.name} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | ${c.score} / ${c.maxScore} |`
+    (c) => {
+      const evidence = c.evidence?.slice(0, 3).map(escapeMd).join('<br>') || '（无）';
+      return `| ${escapeMd(c.name)} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | ${c.score} / ${c.maxScore} | ${escapeMd(c.reason)} | ${evidence} |`;
+    }
   );
   return [header, ...rows].join('\n');
 }
@@ -54,7 +56,13 @@ function buildSuggestionsList(suggestions: Suggestion[]): string {
     return '你的项目在检测范围内没有明显缺失，继续保持！';
   }
   return suggestions
-    .map((s, i) => `${i + 1}. **${s.checkName}**：${s.content}`)
+    .map((s, i) => {
+      const lines = [`${i + 1}. **${s.checkName}**：${s.content}`];
+      if (s.template) {
+        lines.push('', '   可复制模板：', '', '````text', s.template.trim(), '````');
+      }
+      return lines.join('\n');
+    })
     .join('\n');
 }
 

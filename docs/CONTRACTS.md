@@ -152,11 +152,14 @@ interface CheckItem {
   status: CheckStatus;       // 文件类只有 pass/fail
   score: number;
   maxScore: number;
+  reason: string;            // 判定原因，用于结果页和报告解释为什么是当前结果
+  evidence?: string[];       // 命中的文件、章节、关键词或统计信息，最多展示前几项
 }
 
 interface Suggestion {
   checkName: string;         // 对应 CheckItem.name
   content: string;           // 建议正文
+  template?: string;         // 可复制到 README / 协作文件中的改进模板
 }
 
 interface ScoreInfo {
