@@ -1,77 +1,64 @@
 // ============================================================
 // R2 分析引擎层 — 改进建议生成
 // 严格对齐 PRD_OpenCheck.md §5.5
+//
+// 每条建议遵循格式：做什么 + 为什么重要 + 怎么做（可操作）
 // ============================================================
 
 import type { CheckItem, Suggestion } from '@/types';
 
-/**
- * 建议模板（PRD §5.5.2 + 补充检测项）
- */
-const SUGGESTION_TEMPLATES: Record<string, string> = {
+const TEMPLATES: Record<string, string> = {
   // ── 文件存在性（PRD §5.3.1）──
 
   'README.md':
-    '建议添加 README.md，说明项目用途、安装方式、运行方式和使用示例。README 是开源项目的"门面"，能让潜在用户和贡献者快速了解项目。',
+    '建议在仓库根目录添加 README.md。README 是开源项目的第一印象——用户平均只用 60 秒判断项目是否值得深入了解。至少应包含：项目简介（这是什么）、快速开始（怎么用）、技术栈（用了什么）。',
 
   LICENSE:
-    '建议添加开源许可证（如 MIT、Apache-2.0 或 GPL-3.0），明确他人使用、修改和分发代码的权限。GitHub 创建新仓库时可一键添加。',
+    '建议添加开源许可证文件（推荐 LICENSE 或 LICENSE.md）。无许可证意味着代码在法律上"保留所有权利"，他人无权使用、修改或分发。MIT、Apache-2.0、GPL-3.0 是最常见的选择，可用 choosealicense.com 辅助决策。',
 
   '.gitignore':
-    '建议添加 .gitignore 文件，避免将编译产物、依赖目录（如 node_modules/）、IDE 配置文件、环境变量文件等提交到仓库。GitHub 提供了常用语言/框架的 .gitignore 模板可供参考。',
+    '建议添加 .gitignore 文件，避免将 node_modules/、.env、IDE 配置、编译产物等无关文件提交到仓库。GitHub 提供了 50+ 语言/框架的 .gitignore 模板，创建新仓库时可一键生成。',
 
   'CONTRIBUTING.md':
-    '建议添加贡献指南（CONTRIBUTING.md），说明如何提交 Issue、如何发起 Pull Request、代码风格要求、以及测试规范。清晰的贡献指南能有效降低外部贡献者的参与门槛。',
+    '建议添加 CONTRIBUTING.md，写明：如何搭建开发环境、如何运行测试、PR 提交规范、代码风格要求。一份好的贡献指南能让第一次来的贡献者在 10 分钟内开始写代码，而非花 1 小时摸索环境。',
 
   'CHANGELOG.md':
-    '建议添加更新日志（CHANGELOG.md），按版本记录新增功能、修复的 Bug 和 Breaking Changes。推荐遵循 Keep a Changelog 格式（keepachangelog.com），方便用户了解项目演进。',
+    '建议添加 CHANGELOG.md，按版本号记录新增功能、Bug 修复和 Breaking Changes。推荐遵循 Keep a Changelog（keepachangelog.com）格式——它已成社区事实标准，用户和自动化工具都能解析。',
 
   '依赖声明文件':
-    '建议添加依赖声明文件（如 package.json、requirements.txt、go.mod、Cargo.toml、pom.xml 等），方便他人识别项目依赖并一键安装。',
+    '建议添加依赖声明文件（如 package.json、go.mod、Cargo.toml、requirements.txt、pom.xml 等）。这能让协作者用一条命令安装全部依赖，而非逐个手动安装。',
 
   '.github/workflows/':
-    '建议配置 CI/CD 工作流（.github/workflows/*.yml），自动化构建、测试和部署流程。GitHub Actions 提供免费额度，能显著提升项目的工程质量和协作效率。',
+    '建议在 .github/workflows/ 目录下添加 CI/CD 工作流文件。哪怕只配一个"PR 提交时跑测试"的流程，也能大幅减少回归 Bug，提升协作效率。GitHub Actions 对公开仓库完全免费。',
 
   // ── README 内容（PRD §5.3.2）──
 
   '运行说明':
-    '建议在 README 中补充"快速开始"章节，包括：安装依赖的命令、启动项目的命令、以及访问地址（如有 Web 界面）。提供可复制的命令示例能大幅降低新用户的入门门槛。',
+    '建议在 README 中补充"快速开始"或"Getting Started"章节。用代码块给出从零到运行的完整命令：git clone → 安装依赖 → 启动。每一步都应该是可直接复制的。如果有跨平台差异（Windows / macOS / Linux），分别注明。',
 
   '技术栈说明':
-    '建议在 README 中列出项目使用的语言、框架、核心依赖和工具链。例如：使用 React + TypeScript + Vite 构建，后端使用 Express + PostgreSQL。这有助于贡献者快速判断自己是否具备参与能力。',
+    '建议在 README 中单独列出"技术栈"或"Built With"章节。格式建议用表格或列表，包含语言、框架、数据库、关键工具。这能帮助潜在贡献者在 30 秒内判断"我有没有能力参与这个项目"。',
 
   '项目结构说明':
-    '建议在 README 中补充目录结构说明，帮助贡献者快速理解代码组织。可用目录树（如 `src/`、`components/`、`utils/`、`api/`）加简短注释的方式呈现。',
+    '建议在 README 中用一个目录树（用 ├ └ │ ── 绘制）展示顶层目录结构，每个目录加一行注释说明用途。新贡献者最怕的就是"代码在哪我都不知道"——一个清晰的结构图能解决这个问题。',
 
   '部署说明':
-    '建议在 README 中补充部署流程，例如 Docker 部署步骤、Vercel/Netlify 一键部署、或传统服务器部署说明。包括环境变量配置、构建命令和启动命令。',
+    '建议在 README 中补充部署章节。至少包含：构建产物命令、环境变量列表、部署目标平台（Docker / Vercel / AWS 等）及大致步骤。即使只有一个 `docker build && docker run` 示例，也比什么都没有强得多。',
 
   '截图/演示':
-    '建议在 README 中添加项目截图或演示 GIF，让潜在用户在阅读文字前先直观了解项目的样子。至少一张图片就能大幅提升 README 的吸引力。',
+    '建议在 README 中至少放一张截图或 GIF。文字描述功能，图片证明功能。对于有 UI 的项目，截图是说服用户尝试的最快方式。Markdown 语法：`![描述](图片URL)`。',
 
   '使用说明':
-    '建议丰富 README 内容：补充 API 文档链接、配置参数说明、或更多代码示例。一个内容充实的 README 应该让用户在无需阅读源码的情况下就能完整使用项目。',
+    '建议丰富 README 的内容深度：补充 API 文档链接、配置参数表格、常见问题（FAQ）、或更多代码示例。一个优秀的 README 应该让用户不读源码就能用起来——目前还差一些。',
 };
 
-/**
- * 根据检测结果列表生成改进建议
- *
- * 规则（PRD §5.5.3）：
- * - status 不为 'pass' 的检测项生成建议
- * - 所有项都 pass 时返回空数组
- */
 export function generateSuggestions(checks: CheckItem[]): Suggestion[] {
   const suggestions: Suggestion[] = [];
-
   for (const check of checks) {
     if (check.status !== 'pass') {
-      const template = SUGGESTION_TEMPLATES[check.name];
-      suggestions.push({
-        checkName: check.name,
-        content: template ?? `建议完善「${check.name}」相关内容。`,
-      });
+      const content = TEMPLATES[check.name] ?? `建议完善「${check.name}」相关内容。`;
+      suggestions.push({ checkName: check.name, content });
     }
   }
-
   return suggestions;
 }
