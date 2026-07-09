@@ -90,6 +90,10 @@ docs/notes/R3/R3_INTERFACE.md
 - `docs/CONTRACTS.md`：跨角色共享契约和当前技术规格。
 - `docs/notes/R3/R3_INTERFACE.md`：R3 的路由、共享组件和结果缓存个人接口备注。
 
+## Contributing
+
+如果你希望为本项目做出贡献，请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)，了解 Issue 创建与认领、分支命名、Pull Request 规范、Review 要求以及本地开发验证方式。
+
 ## Scope
 
 当前版本聚焦 GitHub 公开仓库的开源规范自查。MVP 阶段不包含用户账号、服务端数据库、云端同步、多仓库批量检测或自动修复。
