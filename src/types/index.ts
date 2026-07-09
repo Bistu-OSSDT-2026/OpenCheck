@@ -102,6 +102,28 @@ export interface Suggestion {
   template?: string
 }
 
+export interface AiConfig {
+  enabled: boolean
+  baseUrl: string
+  model: string
+  apiKey: string
+}
+
+export interface AiReviewSuggestion {
+  title: string
+  content: string
+}
+
+export type AiReviewStatus = 'disabled' | 'loading' | 'success' | 'fallback'
+
+export interface AiReviewResult {
+  status: AiReviewStatus
+  message: string
+  provider?: string
+  model?: string
+  suggestions?: AiReviewSuggestion[]
+}
+
 /**
  * 完整检测结果对象 —— R2 独占写入（含 report 字段）
  * 整个对象只有一个所有者，下游（R5 报告页）只需读 result.report 渲染。
