@@ -4,6 +4,7 @@
  * - 串起 parseRepoUrl → fetchRepo → analyze → saveHistory → render
  * - 加载态、错误态、成功态都在本页内处理
  * - 跳转报告页前写入 R3 结果缓存
+ * - AI 辅助检查为可选增强，不改变默认规则评分
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -17,6 +18,7 @@ import {
   RotateCcw,
   Scale,
   Search,
+  Sparkles,
   Star,
 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -28,12 +30,13 @@ import {
   ScoreDisplay,
   StatusIcon,
 } from '@/components'
-import { fetchRepo, isParseError, parseRepoUrl } from '@/api'
+import { fetchRepo, getAiConfig, isParseError, parseRepoUrl } from '@/api'
 import { RULE_EXPLANATIONS, analyze, generateReport } from '@/engine'
+import { generateAiReview } from '@/engine/aiReview'
 import { ROUTE } from '@/router/routes'
 import { setLastResult } from '@/store/resultCache'
 import { createHistoryComparison, saveHistory } from '@/store/history'
-import type { AnalysisResult, ApiError, ApiErrorKind } from '@/types'
+import type { AiReviewResult, AnalysisResult, ApiError, ApiErrorKind } from '@/types'
 
 interface ResultLocationState {
   repoUrl?: string
@@ -83,6 +86,13 @@ function formatScoreDelta(delta: number): string {
   return '无变化'
 }
 
+function aiStatusLabel(aiReview: AiReviewResult): string {
+  if (aiReview.status === 'loading') return 'AI 检查中'
+  if (aiReview.status === 'success') return 'AI 已参与'
+  if (aiReview.status === 'fallback') return 'AI 已回退'
+  return 'AI 未启用'
+}
+
 export default function ResultPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -93,8 +103,40 @@ export default function ResultPage() {
     status: 'loading',
     repoUrl,
   })
+  const [aiReview, setAiReview] = useState<AiReviewResult>({
+    status: 'disabled',
+    message: '未启用 AI 辅助检查，当前结果完全由默认规则评分系统生成。',
+  })
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null)
   const [showRules, setShowRules] = useState(false)
+
+  const runAiReview = useCallback(async (analysisResult: AnalysisResult, mode: 'real' | 'demo') => {
+    if (mode === 'demo') {
+      setAiReview({
+        status: 'disabled',
+        message: '演示模式不调用外部 AI 服务，当前结果来自本地样例。',
+      })
+      return
+    }
+
+    const config = getAiConfig()
+    if (!config.enabled || !config.apiKey.trim()) {
+      setAiReview({
+        status: 'disabled',
+        message: '未启用 AI 辅助检查，当前结果完全由默认规则评分系统生成。',
+      })
+      return
+    }
+
+    setAiReview({
+      status: 'loading',
+      provider: config.baseUrl,
+      model: config.model,
+      message: '正在请求用户配置的 AI 模型生成补充建议...',
+    })
+    const review = await generateAiReview(analysisResult, config)
+    setAiReview(review)
+  }, [])
 
   const runAnalysis = useCallback(async (rawUrl: string) => {
     const parsed = parseRepoUrl(rawUrl)
@@ -135,13 +177,15 @@ export default function ResultPage() {
         historyComparison: resultForDisplay.historyComparison,
       })
     }
+
     setResultState({
       status: 'success',
       repoUrl: rawUrl,
       result: resultForDisplay,
       mode: 'real',
     })
-  }, [])
+    void runAiReview(resultForDisplay, 'real')
+  }, [runAiReview])
 
   useEffect(() => {
     if (hasStarted.current) return
@@ -153,10 +197,11 @@ export default function ResultPage() {
         result: state.result,
         mode: 'demo',
       })
+      void runAiReview(state.result, 'demo')
       return
     }
     void runAnalysis(repoUrl)
-  }, [repoUrl, runAnalysis, state])
+  }, [repoUrl, runAnalysis, runAiReview, state])
 
   const handleViewReport = (result: AnalysisResult) => {
     setLastResult(result)
@@ -353,6 +398,52 @@ export default function ResultPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </section>
+
+        <section className={`result-section ai-review-preview ai-review-preview--${aiReview.status}`}>
+          <div className="ai-review-preview__heading">
+            <span className="ai-review-preview__icon">
+              <Sparkles aria-hidden="true" size={18} />
+            </span>
+            <div>
+              <p className="repo-card__label">可选增强</p>
+              <h2 className="result-section__title">AI 辅助建议</h2>
+            </div>
+            <span className={`ai-review-preview__status ai-review-preview__status--${aiReview.status}`}>
+              {aiStatusLabel(aiReview)}
+            </span>
+          </div>
+          <p>{aiReview.message}</p>
+          {(aiReview.provider || aiReview.model) && (
+            <p className="ai-review-preview__meta">
+              Provider：{aiReview.provider || '未知'} · Model：{aiReview.model || '未知'}
+            </p>
+          )}
+          {aiReview.status === 'success' && aiReview.suggestions?.length ? (
+            <div className="ai-review-preview__grid">
+              {aiReview.suggestions.map((suggestion) => (
+                <article key={suggestion.title}>
+                  <strong>{suggestion.title}</strong>
+                  <span>{suggestion.content}</span>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="ai-review-preview__grid">
+              <article>
+                <strong>默认规则评分</strong>
+                <span>无论 AI 是否启用，分数始终来自 OpenCheck 默认规则系统。</span>
+              </article>
+              <article>
+                <strong>失败自动回退</strong>
+                <span>模型超时、额度不足或 Key 错误时，检测结果继续展示。</span>
+              </article>
+              <article>
+                <strong>用户自带密钥</strong>
+                <span>项目不内置 API Key，密钥只由用户主动填写并保存在本地。</span>
+              </article>
+            </div>
           )}
         </section>
 

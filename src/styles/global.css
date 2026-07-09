@@ -1103,6 +1103,112 @@ svg {
   box-shadow: 0 8px 18px rgba(217, 119, 6, 0.12);
 }
 
+.ai-review-preview {
+  border-color: rgba(37, 99, 235, 0.28);
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.94), rgba(255, 255, 255, 0.9)),
+    var(--color-surface);
+}
+
+.ai-review-preview__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ai-review-preview__heading > div {
+  flex: 1;
+}
+
+.ai-review-preview__heading .result-section__title {
+  margin-bottom: 0;
+}
+
+.ai-review-preview__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--color-primary);
+  box-shadow: var(--shadow-glass-inset);
+}
+
+.ai-review-preview p {
+  color: var(--color-muted);
+}
+
+.ai-review-preview__meta {
+  margin-top: 8px;
+  color: var(--color-subtle);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.ai-review-preview__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.ai-review-preview__status--success {
+  border-color: #86efac;
+  background: var(--color-success-soft);
+  color: #15803d;
+}
+
+.ai-review-preview__status--fallback {
+  border-color: #fed7aa;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.ai-review-preview__status--loading {
+  border-color: var(--color-border-strong);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ai-review-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ai-review-preview__grid article {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-glass-inset);
+}
+
+.ai-review-preview__grid strong {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.ai-review-preview__grid span {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
 .result-comparison {
   display: grid;
   gap: 4px;
@@ -1509,6 +1615,67 @@ svg {
   margin-top: 8px;
 }
 
+.ai-preview-panel {
+  border-color: rgba(37, 99, 235, 0.28);
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.92), rgba(255, 255, 255, 0.88)),
+    var(--color-surface);
+}
+
+.ai-preview-form {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.ai-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.ai-toggle-row input {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--color-primary);
+}
+
+.ai-toggle-row span {
+  display: grid;
+  gap: 3px;
+}
+
+.ai-toggle-row small {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ai-input {
+  padding: 0 14px;
+}
+
+.ai-provider-examples {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-primary-soft);
+}
+
+.ai-provider-examples span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
 /* ===== Motion ===== */
 @keyframes spin {
   to {
@@ -1604,7 +1771,8 @@ svg {
   }
 
   .demo-list,
-  .result-summary {
+  .result-summary,
+  .ai-review-preview__grid {
     grid-template-columns: 1fr;
   }
 
@@ -1641,6 +1809,11 @@ svg {
   .token-buttons {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .ai-review-preview__heading,
+  .ai-toggle-row {
+    align-items: flex-start;
   }
 }
 

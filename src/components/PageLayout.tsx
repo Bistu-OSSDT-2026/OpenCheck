@@ -66,7 +66,7 @@ export function PageLayout({ title, children, showBack = true }: PageLayoutProps
 
       <footer className="page-layout__footer">
         <div className="page-layout__footer-inner">
-          <span className="page-layout__copyright">© 2024 OpenCheck Developer Tools</span>
+          <span className="page-layout__copyright">© 2026 OpenCheck Developer Tools</span>
           <div className="page-layout__footer-links">
             <a href="https://github.com/Bistu-OSSDT-2026/OpenCheck#readme" target="_blank" rel="noopener noreferrer">
               <FileText aria-hidden="true" size={16} />
@@ -76,7 +76,7 @@ export function PageLayout({ title, children, showBack = true }: PageLayoutProps
               <ExternalLink aria-hidden="true" size={16} />
               GitHub
             </a>
-            <span>状态</span>
+            <span>本地运行</span>
           </div>
         </div>
       </footer>

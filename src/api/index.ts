@@ -26,5 +26,14 @@ export { fetchRepoInfo, fetchFileList, fetchFileContent, fetchRepo, fetchRateLim
 // Token 存储（R1 是 token 槽位唯一所有者，localStorage key: 'opencheck_token'）
 export { getToken, saveToken, clearToken } from './tokenStorage'
 
+// AI 配置存储（用户自带 Key，可选增强；localStorage key: 'opencheck_ai_config'）
+export {
+  DEFAULT_AI_CONFIG,
+  clearAiConfig,
+  getAiConfig,
+  hasUsableAiConfig,
+  saveAiConfig,
+} from './aiConfigStorage'
+
 // Mock 数据
 export { MOCK_GITHUB_DATA, fetchMockRepo } from './mockData'
