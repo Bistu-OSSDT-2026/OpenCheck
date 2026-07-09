@@ -1,12 +1,10 @@
 // ============================================================
 // R2 分析引擎层 — Markdown 报告生成
+// 严格对齐 PRD_OpenCheck.md §5.6
 // ============================================================
 
 import type { AnalysisResult, CheckItem, Suggestion } from '@/types';
 
-/**
- * 将 CheckStatus 转为中文展示文本
- */
 function statusLabel(status: string): string {
   switch (status) {
     case 'pass':
@@ -20,35 +18,40 @@ function statusLabel(status: string): string {
   }
 }
 
-/**
- * 将 CheckCategory 转为中文展示文本
- */
 function categoryLabel(category: string): string {
   switch (category) {
-    case 'file':
-      return '文件存在性';
-    case 'readme':
-      return 'README 内容';
-    default:
-      return category;
+    case 'file':   return '文件存在性';
+    case 'readme': return 'README 内容';
+    default:       return category;
   }
 }
 
 /**
- * 生成检测明细 Markdown 表格
+ * 生成检测明细表
+ *
+ * 评分项在上，补充检测项在下，中间用分隔行区分。
+ * 补充检测项得分列显示 "—"。
  */
 function buildChecksTable(checks: CheckItem[]): string {
+  const scored = checks.filter(c => c.maxScore > 0);
+  const informational = checks.filter(c => c.maxScore === 0);
+
   const header = '| 检测项 | 类别 | 结果 | 得分 |\n|--------|------|------|------|';
-  const rows = checks.map(
-    (c) =>
-      `| ${c.name} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | ${c.score} / ${c.maxScore} |`
+
+  const scoredRows = scored.map(
+    (c) => `| ${c.name} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | ${c.score} / ${c.maxScore} |`
   );
-  return [header, ...rows].join('\n');
+
+  const infoRows = informational.length > 0
+    ? ['', '| **↓ 补充检测（不计分）** | | | |', '']
+        .concat(informational.map(
+          (c) => `| ${c.name} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | — |`
+        ))
+    : [];
+
+  return [header, ...scoredRows, ...infoRows].join('\n');
 }
 
-/**
- * 生成改进建议 Markdown 列表
- */
 function buildSuggestionsList(suggestions: Suggestion[]): string {
   if (suggestions.length === 0) {
     return '你的项目在检测范围内没有明显缺失，继续保持！';
@@ -59,27 +62,14 @@ function buildSuggestionsList(suggestions: Suggestion[]): string {
 }
 
 /**
- * 生成完整的 Markdown 检测报告
- *
- * 报告包含以下章节：
- * 1. 标题 + 检测时间
- * 2. 仓库基本信息
- * 3. 检测总评分（分数 + 等级）
- * 4. 检测明细表
- * 5. 改进建议列表
- * 6. 尾部标识
+ * 生成完整的 Markdown 检测报告（PRD §5.6.1）
  */
 export function generateReport(result: Omit<AnalysisResult, 'report'>): string {
   const { timestamp, repoInfo, score, checks, suggestions } = result;
 
-  // 格式化时间
   const formattedTime = new Date(timestamp).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: false,
   });
 
@@ -130,10 +120,6 @@ export function generateReport(result: Omit<AnalysisResult, 'report'>): string {
   return lines.join('\n') + '\n';
 }
 
-/**
- * 转义 Markdown 特殊字符，防止表格被破坏
- * 主要是管道符 | 和换行符
- */
 function escapeMd(text: string): string {
   return text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
