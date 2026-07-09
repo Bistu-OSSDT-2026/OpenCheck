@@ -14,7 +14,7 @@
  * 契约冻结日期：Day 1
  */
 
-import type { ApiError, ApiErrorKind, FileItem, GithubData, RepoInfo } from '@/types'
+import type { ApiError, ApiErrorKind, FileItem, GithubData, RateLimitInfo, RepoInfo } from '@/types'
 import { getToken } from './tokenStorage'
 
 const API_BASE = 'https://api.github.com'
@@ -238,5 +238,24 @@ export async function fetchRepo(
     repoInfo: infoResult,
     fileList: fileListResult,
     readmeContent: typeof readmeResult === 'string' ? readmeResult : '',
+  }
+}
+
+export async function fetchRateLimit(token?: string): Promise<RateLimitInfo | ApiError> {
+  const raw = await safeFetch(`${API_BASE}/rate_limit`, { headers: buildHeaders(token) })
+  if (isApiError(raw)) return raw
+
+  const data = raw as Record<string, unknown>
+  const resources = data.resources as Record<string, unknown> | undefined
+  const core = resources?.core as Record<string, unknown> | undefined
+  const rate = data.rate as Record<string, unknown> | undefined
+  const limit = Number(core?.limit ?? rate?.limit ?? 0)
+  const remaining = Number(core?.remaining ?? rate?.remaining ?? 0)
+  const reset = Number(core?.reset ?? rate?.reset ?? 0)
+
+  return {
+    limit,
+    remaining,
+    resetAt: reset > 0 ? new Date(reset * 1000).toISOString() : '',
   }
 }

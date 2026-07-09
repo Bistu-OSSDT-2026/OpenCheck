@@ -33,23 +33,22 @@ function categoryLabel(category: string): string {
  * 补充检测项得分列显示 "—"。
  */
 function buildChecksTable(checks: CheckItem[]): string {
-  const scored = checks.filter(c => c.maxScore > 0);
-  const informational = checks.filter(c => c.maxScore === 0);
+  const scored = checks.filter((c) => c.maxScore > 0);
+  const informational = checks.filter((c) => c.maxScore === 0);
 
-  const header = '| 检测项 | 类别 | 结果 | 得分 |\n|--------|------|------|------|';
+  const header = '| 检测项 | 类别 | 结果 | 得分 | 判定原因 | 证据 |\n|--------|------|------|------|----------|------|';
 
-  const scoredRows = scored.map(
-    (c) => `| ${c.name} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | ${c.score} / ${c.maxScore} |`
-  );
+  const toRow = (c: CheckItem) => {
+    const scoreText = c.maxScore === 0 ? '—' : `${c.score} / ${c.maxScore}`;
+    const evidence = c.evidence?.slice(0, 3).map(escapeMd).join('<br>') || '（无）';
+    return `| ${escapeMd(c.name)} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | ${scoreText} | ${escapeMd(c.reason)} | ${evidence} |`;
+  };
 
   const infoRows = informational.length > 0
-    ? ['', '| **↓ 补充检测（不计分）** | | | |', '']
-        .concat(informational.map(
-          (c) => `| ${c.name} | ${categoryLabel(c.category)} | ${statusLabel(c.status)} | — |`
-        ))
+    ? ['| **↓ 补充检测（不计分）** | | | | | |', ...informational.map(toRow)]
     : [];
 
-  return [header, ...scoredRows, ...infoRows].join('\n');
+  return [header, ...scored.map(toRow), ...infoRows].join('\n');
 }
 
 function buildSuggestionsList(suggestions: Suggestion[]): string {
@@ -57,8 +56,50 @@ function buildSuggestionsList(suggestions: Suggestion[]): string {
     return '你的项目在检测范围内没有明显缺失，继续保持！';
   }
   return suggestions
-    .map((s, i) => `${i + 1}. **${s.checkName}**：${s.content}`)
+    .map((s, i) => {
+      const lines = [`${i + 1}. **${s.checkName}**：${s.content}`];
+      if (s.template) {
+        lines.push('', '   可复制模板：', '', '````text', s.template.trim(), '````');
+      }
+      return lines.join('\n');
+    })
     .join('\n');
+}
+
+function buildHistoryComparison(result: Omit<AnalysisResult, 'report'>): string[] {
+  const comparison = result.historyComparison;
+  if (!comparison) return [];
+
+  const delta = comparison.scoreDelta > 0
+    ? `+${comparison.scoreDelta}`
+    : comparison.scoreDelta < 0
+      ? `${comparison.scoreDelta}`
+      : '无变化';
+  const lines = [
+    '---',
+    '',
+    '## 与上次检测对比',
+    '',
+    `| 项目 | 本次 | 上次 | 变化 |`,
+    `|------|------|------|------|`,
+    `| 总分 | ${result.score.total} | ${comparison.previousScore} | ${delta} |`,
+    `| 等级 | ${result.score.level} | ${comparison.previousLevel} | - |`,
+    '',
+  ];
+
+  if (comparison.changedChecks.length === 0) {
+    lines.push('检测项状态没有变化。', '');
+    return lines;
+  }
+
+  lines.push('| 检测项 | 上次 | 本次 |', '|--------|------|------|');
+  for (const change of comparison.changedChecks) {
+    lines.push(
+      `| ${escapeMd(change.name)} | ${statusLabel(change.previousStatus)} | ${statusLabel(change.currentStatus)} |`,
+    );
+  }
+  lines.push('');
+  return lines;
 }
 
 /**
@@ -112,6 +153,7 @@ export function generateReport(result: Omit<AnalysisResult, 'report'>): string {
     '',
     buildSuggestionsList(suggestions),
     '',
+    ...buildHistoryComparison(result),
     '---',
     '',
     `*Powered by OpenCheck — 开源项目体检助手*`,

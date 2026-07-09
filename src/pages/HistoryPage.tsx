@@ -40,6 +40,22 @@ export default function HistoryPage() {
     navigate(ROUTE.RESULT, { state: { repoUrl: record.repoUrl } })
   }
 
+  const handleRetest = (record: HistoryRecord) => {
+    navigate(ROUTE.RESULT, { state: { repoUrl: record.repoUrl } })
+  }
+
+  const getScoreDelta = (record: HistoryRecord): number | null => {
+    if (!record.previous) return null
+    return record.score - record.previous.score
+  }
+
+  const formatScoreDelta = (delta: number | null): string => {
+    if (delta === null) return '首次检测'
+    if (delta > 0) return `+${delta}`
+    if (delta < 0) return `${delta}`
+    return '无变化'
+  }
+
   if (records.length === 0) {
     return (
       <PageLayout title="历史记录">
@@ -70,6 +86,9 @@ export default function HistoryPage() {
               </span>
               <span className="history-item__meta">
                 <span className="history-item__score">得分 {r.score}</span>
+                <span className={getScoreDelta(r) !== null && getScoreDelta(r)! < 0 ? 'history-item__delta is-negative' : 'history-item__delta'}>
+                  {formatScoreDelta(getScoreDelta(r))}
+                </span>
                 <span className="history-item__time">
                   {new Date(r.timestamp).toLocaleString('zh-CN')}
                 </span>
@@ -81,6 +100,13 @@ export default function HistoryPage() {
               onClick={() => handleDelete(r.repoUrl, r.repoName)}
             >
               删除
+            </button>
+            <button
+              className="history-item__retest"
+              type="button"
+              onClick={() => handleRetest(r)}
+            >
+              重新检测
             </button>
           </li>
         ))}

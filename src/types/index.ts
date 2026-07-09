@@ -61,6 +61,12 @@ export interface ApiError {
 /** fetchRepo 返回值：成功返回数据，失败返回错误对象（不 throw） */
 export type FetchRepoResult = GithubData | ApiError
 
+export interface RateLimitInfo {
+  limit: number
+  remaining: number
+  resetAt: string
+}
+
 
 /* =========================================================
  * R2 所有：分析引擎契约（AnalysisResult）
@@ -78,6 +84,8 @@ export interface CheckItem {
   status: CheckStatus
   score: number
   maxScore: number
+  reason: string
+  evidence?: string[]
 }
 
 /** 评分与等级 —— R2 所有 */
@@ -91,6 +99,7 @@ export interface ScoreInfo {
 export interface Suggestion {
   checkName: string
   content: string
+  template?: string
 }
 
 /**
@@ -103,6 +112,7 @@ export interface AnalysisResult {
   score: ScoreInfo
   checks: CheckItem[]
   suggestions: Suggestion[]
+  historyComparison?: HistoryComparison
   /** 完整 Markdown 报告文本 —— R2 独占生成，R5 报告页只读 */
   report: string
 }
@@ -119,6 +129,27 @@ export interface CheckSummaryItem {
   status: CheckStatus
 }
 
+export interface HistorySnapshot {
+  score: number
+  level: '优秀' | '较完整' | '基本可用' | '需要完善'
+  timestamp: string
+  checkSummary: CheckSummaryItem[]
+}
+
+export interface CheckStatusChange {
+  name: string
+  previousStatus: CheckStatus
+  currentStatus: CheckStatus
+}
+
+export interface HistoryComparison {
+  previousScore: number
+  previousLevel: '优秀' | '较完整' | '基本可用' | '需要完善'
+  previousTimestamp: string
+  scoreDelta: number
+  changedChecks: CheckStatusChange[]
+}
+
 /**
  * 历史记录条目 —— R5 独占
  * R4 调用 saveHistory(repoUrl, analysisResult)，R5 在函数内部从
@@ -131,4 +162,5 @@ export interface HistoryRecord {
   level: '优秀' | '较完整' | '基本可用' | '需要完善'
   timestamp: string
   checkSummary: CheckSummaryItem[]
+  previous?: HistorySnapshot
 }

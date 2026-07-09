@@ -208,18 +208,30 @@ function countKeywordHits(content: string, keywords: string[]): number {
   return hits;
 }
 
-/** 检查 markdown 标题行是否命中章节特征词 */
-function hasRelevantSection(content: string, sectionKeywords: string[]): boolean {
+function findMatchedKeywords(content: string, keywords: string[]): string[] {
   const lower = content.toLowerCase();
+  const matched: string[] = [];
+  for (const keyword of keywords) {
+    if (lower.includes(keyword.toLowerCase())) {
+      matched.push(keyword);
+    }
+    if (matched.length >= 5) break;
+  }
+  return matched;
+}
+
+/** 检查 markdown 标题行是否命中章节特征词 */
+function findMatchedSection(content: string, sectionKeywords: string[]): string | null {
   const headingRegex = /^#{1,6}\s+(.+)$/gm;
   let match: RegExpExecArray | null;
-  while ((match = headingRegex.exec(lower)) !== null) {
+  while ((match = headingRegex.exec(content)) !== null) {
     const heading = match[1].trim();
+    const lowerHeading = heading.toLowerCase();
     for (const kw of sectionKeywords) {
-      if (heading.includes(kw.toLowerCase())) return true;
+      if (lowerHeading.includes(kw.toLowerCase())) return heading;
     }
   }
-  return false;
+  return null;
 }
 
 /** 围栏式（```）或缩进式（4 空格 / 1 tab）代码块 */
@@ -249,6 +261,12 @@ function hasVersionInfo(content: string): boolean {
   return /\b\d+\.\d+(?:\.\d+)?\b/.test(content);
 }
 
+interface DimensionAnalysis {
+  status: CheckStatus;
+  reason: string;
+  evidence: string[];
+}
+
 // ============================================================
 // 启发式判定（3 态，PRD §5.3.2）
 //
@@ -267,31 +285,82 @@ function hasVersionInfo(content: string): boolean {
 // ============================================================
 
 function analyzeDimension(
+  label: string,
   content: string,
   keywords: string[],
   sectionKeywords: string[],
-): CheckStatus {
-  if (!content || content.trim().length === 0) return 'fail';
+): DimensionAnalysis {
+  if (!content || content.trim().length === 0) {
+    return {
+      status: 'fail',
+      reason: `README 为空，无法判断是否包含${label}。`,
+      evidence: ['README 内容为空或未读取到内容'],
+    };
+  }
 
   const keywordHits = countKeywordHits(content, keywords);
-  if (keywordHits === 0) return 'fail';
-
-  const hasSection = hasRelevantSection(content, sectionKeywords);
-  if (hasSection) return 'pass';
-
-  // 中信号计数：代码块 / 外链 / 列表 / 版本号 / 丰富章节
+  const matchedKeywords = findMatchedKeywords(content, keywords);
+  const matchedSection = findMatchedSection(content, sectionKeywords);
   const midSignals = [
-    hasCodeBlock(content),
-    hasExternalLinks(content),
-    hasBulletList(content),
-    hasVersionInfo(content),
-    hasRichSections(content),
-  ].filter(Boolean).length;
+    hasCodeBlock(content) ? '包含代码块' : '',
+    hasExternalLinks(content) ? '包含外部链接' : '',
+    hasBulletList(content) ? '包含列表结构' : '',
+    hasVersionInfo(content) ? '包含版本号' : '',
+    hasRichSections(content) ? 'README 章节数量较丰富' : '',
+  ].filter(Boolean);
 
-  if (keywordHits >= 5) return 'pass';
-  if (keywordHits >= 3 && midSignals >= 1) return 'pass';
-  if (keywordHits >= 2 && midSignals >= 2) return 'pass';
-  return 'partial';
+  const evidence = [
+    matchedSection ? `命中章节：${matchedSection}` : '',
+    matchedKeywords.length > 0 ? `命中关键词：${matchedKeywords.join('、')}` : '',
+    keywordHits > 0 ? `关键词命中次数：${keywordHits}` : '',
+    ...midSignals.slice(0, 3),
+  ].filter(Boolean);
+
+  if (keywordHits === 0) {
+    return {
+      status: 'fail',
+      reason: `README 未检测到明显的${label}内容。`,
+      evidence: [`未命中${label}相关章节或关键词`],
+    };
+  }
+
+  if (matchedSection) {
+    return {
+      status: 'pass',
+      reason: `README 中存在与${label}相关的章节，信息入口比较清楚。`,
+      evidence,
+    };
+  }
+
+  if (keywordHits >= 5) {
+    return {
+      status: 'pass',
+      reason: `README 多次提到${label}相关内容，覆盖度较高。`,
+      evidence,
+    };
+  }
+
+  if (keywordHits >= 3 && midSignals.length >= 1) {
+    return {
+      status: 'pass',
+      reason: `README 同时包含${label}关键词和辅助信号，说明较充分。`,
+      evidence,
+    };
+  }
+
+  if (keywordHits >= 2 && midSignals.length >= 2) {
+    return {
+      status: 'pass',
+      reason: `README 中的${label}内容有关键词和多项结构化信号支撑。`,
+      evidence,
+    };
+  }
+
+  return {
+    status: 'partial',
+    reason: `README 提到了${label}，但缺少清晰章节、步骤或足够上下文。`,
+    evidence,
+  };
 }
 
 // ============================================================
@@ -304,8 +373,22 @@ function contentScore(status: CheckStatus, maxScore: number): number {
   return 0;
 }
 
-function makeResult(name: string, status: CheckStatus, maxScore: number): CheckItem {
-  return { name, category: 'readme', status, score: contentScore(status, maxScore), maxScore };
+function makeResult(
+  name: string,
+  status: CheckStatus,
+  maxScore: number,
+  reason: string,
+  evidence: string[],
+): CheckItem {
+  return {
+    name,
+    category: 'readme',
+    status,
+    score: contentScore(status, maxScore),
+    maxScore,
+    reason,
+    evidence,
+  };
 }
 
 // ============================================================
@@ -313,19 +396,23 @@ function makeResult(name: string, status: CheckStatus, maxScore: number): CheckI
 // ============================================================
 
 export function checkRunInstructions(readmeContent: string): CheckItem {
-  return makeResult('运行说明', analyzeDimension(readmeContent, RUN_KEYWORDS, RUN_SECTION_TITLES), 15);
+  const analysis = analyzeDimension('运行说明', readmeContent, RUN_KEYWORDS, RUN_SECTION_TITLES);
+  return makeResult('运行说明', analysis.status, 15, analysis.reason, analysis.evidence);
 }
 
 export function checkTechStack(readmeContent: string): CheckItem {
-  return makeResult('技术栈说明', analyzeDimension(readmeContent, TECH_STACK_KEYWORDS, TECH_SECTION_TITLES), 10);
+  const analysis = analyzeDimension('技术栈说明', readmeContent, TECH_STACK_KEYWORDS, TECH_SECTION_TITLES);
+  return makeResult('技术栈说明', analysis.status, 10, analysis.reason, analysis.evidence);
 }
 
 export function checkProjectStructure(readmeContent: string): CheckItem {
-  return makeResult('项目结构说明', analyzeDimension(readmeContent, STRUCTURE_KEYWORDS, STRUCTURE_SECTION_TITLES), 10);
+  const analysis = analyzeDimension('项目结构说明', readmeContent, STRUCTURE_KEYWORDS, STRUCTURE_SECTION_TITLES);
+  return makeResult('项目结构说明', analysis.status, 10, analysis.reason, analysis.evidence);
 }
 
 export function checkDeployInstructions(readmeContent: string): CheckItem {
-  return makeResult('部署说明', analyzeDimension(readmeContent, DEPLOY_KEYWORDS, DEPLOY_SECTION_TITLES), 5);
+  const analysis = analyzeDimension('部署说明', readmeContent, DEPLOY_KEYWORDS, DEPLOY_SECTION_TITLES);
+  return makeResult('部署说明', analysis.status, 5, analysis.reason, analysis.evidence);
 }
 
 // ============================================================
@@ -335,9 +422,33 @@ export function checkDeployInstructions(readmeContent: string): CheckItem {
 /** 截图/演示：检测 Markdown 图片语法或 <img> 标签 */
 export function checkScreenshots(readmeContent: string): CheckItem {
   const content = (readmeContent ?? '').trim();
-  const hasImage = content.length > 0 &&
-    (/!\[.*?\]\(.+?\)/.test(content) || /<img\s/i.test(content));
-  return makeResult('截图/演示', hasImage ? 'pass' : 'fail', 0);
+  if (content.length === 0) {
+    return makeResult(
+      '截图/演示',
+      'fail',
+      0,
+      'README 为空，无法检测截图或演示内容。',
+      ['README 内容为空或未读取到内容'],
+    );
+  }
+
+  const hasMarkdownImage = /!\[.*?\]\(.+?\)/.test(content);
+  const hasHtmlImage = /<img\s/i.test(content);
+  const hasImage = hasMarkdownImage || hasHtmlImage;
+  return makeResult(
+    '截图/演示',
+    hasImage ? 'pass' : 'fail',
+    0,
+    hasImage
+      ? 'README 中包含图片语法或 img 标签，能帮助用户直观看到项目效果。'
+      : 'README 未检测到 Markdown 图片或 HTML img 标签，缺少直观演示材料。',
+    hasImage
+      ? [
+          hasMarkdownImage ? '命中 Markdown 图片语法' : '',
+          hasHtmlImage ? '命中 HTML img 标签' : '',
+        ].filter(Boolean)
+      : ['期望格式：![描述](图片链接) 或 <img src="...">'],
+  );
 }
 
 /**
@@ -356,7 +467,15 @@ export function checkScreenshots(readmeContent: string): CheckItem {
  */
 export function checkUsageInstructions(readmeContent: string): CheckItem {
   const content = (readmeContent ?? '').trim();
-  if (content.length === 0) return makeResult('使用说明', 'fail', 0);
+  if (content.length === 0) {
+    return makeResult(
+      '使用说明',
+      'fail',
+      0,
+      'README 为空，无法判断是否包含完整使用说明。',
+      ['README 内容为空或未读取到内容'],
+    );
+  }
 
   const totalLength = content.length;
   const codeBlockCount = (content.match(/```[\s\S]*?```/gm) || []).length;
@@ -378,7 +497,23 @@ export function checkUsageInstructions(readmeContent: string): CheckItem {
     status = 'fail';
   }
 
-  return makeResult('使用说明', status, 0);
+  return makeResult(
+    '使用说明',
+    status,
+    0,
+    status === 'pass'
+      ? 'README 内容长度、章节、链接或代码示例较充分，具备较完整的使用说明。'
+      : status === 'partial'
+        ? 'README 有一定内容基础，但使用示例、配置说明或 API 说明还不够充分。'
+        : 'README 内容较少，缺少足够的使用说明、示例或配置细节。',
+    [
+      `正文长度：${totalLength} 字符`,
+      `代码块数量：${codeBlockCount}`,
+      `标题数量：${headingCount}`,
+      `外部链接数量：${linkCount}`,
+      `列表项数量：${listItemCount}`,
+    ],
+  );
 }
 
 // ============================================================
@@ -390,12 +525,12 @@ export function runReadmeChecks(readmeContent: string | null | undefined): Check
 
   if (content.length === 0) {
     return [
-      makeResult('运行说明', 'fail', 15),
-      makeResult('技术栈说明', 'fail', 10),
-      makeResult('项目结构说明', 'fail', 10),
-      makeResult('部署说明', 'fail', 5),
-      makeResult('截图/演示', 'fail', 0),
-      makeResult('使用说明', 'fail', 0),
+      makeResult('运行说明', 'fail', 15, 'README 为空，无法判断是否包含运行说明。', ['README 内容为空或未读取到内容']),
+      makeResult('技术栈说明', 'fail', 10, 'README 为空，无法判断是否包含技术栈说明。', ['README 内容为空或未读取到内容']),
+      makeResult('项目结构说明', 'fail', 10, 'README 为空，无法判断是否包含项目结构说明。', ['README 内容为空或未读取到内容']),
+      makeResult('部署说明', 'fail', 5, 'README 为空，无法判断是否包含部署说明。', ['README 内容为空或未读取到内容']),
+      makeResult('截图/演示', 'fail', 0, 'README 为空，无法检测截图或演示内容。', ['README 内容为空或未读取到内容']),
+      makeResult('使用说明', 'fail', 0, 'README 为空，无法判断是否包含完整使用说明。', ['README 内容为空或未读取到内容']),
     ];
   }
 
