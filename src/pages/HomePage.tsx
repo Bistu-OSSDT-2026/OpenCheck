@@ -10,6 +10,7 @@ import { FormEvent, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { PageLayout } from '@/components'
 import { parseRepoUrl, isParseError } from '@/api'
+import { DEMO_RESULTS } from '@/engine'
 import { ROUTE } from '@/router/routes'
 
 interface HomeLocationState {
@@ -39,6 +40,16 @@ export default function HomePage() {
     navigate(ROUTE.RESULT, {
       state: {
         repoUrl: repoUrl.trim(),
+      },
+    })
+  }
+
+  const handleDemo = (demo: (typeof DEMO_RESULTS)[number]) => {
+    navigate(ROUTE.RESULT, {
+      state: {
+        mode: 'demo',
+        repoUrl: demo.repoUrl,
+        result: demo.result,
       },
     })
   }
@@ -77,6 +88,24 @@ export default function HomePage() {
           <span>支持完整 HTTPS 地址</span>
           <span>支持 github.com/owner/repo</span>
           <span>支持 owner/repo</span>
+        </div>
+
+        <div className="demo-panel">
+          <h2>演示样例</h2>
+          <p>评审现场网络不稳或 GitHub 限流时，可以直接使用本地样例展示完整报告链路。</p>
+          <div className="demo-list">
+            {DEMO_RESULTS.map((demo) => (
+              <button
+                className="demo-card"
+                key={demo.id}
+                type="button"
+                onClick={() => handleDemo(demo)}
+              >
+                <strong>{demo.label}</strong>
+                <span>{demo.description}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
     </PageLayout>

@@ -15,34 +15,46 @@ import type { CheckItem, FileItem } from '@/types';
 // ============================================================
 
 /** 在根目录文件中查找匹配（大小写不敏感） */
-function findInRoot(fileList: FileItem[], patterns: string[]): boolean {
-  const lowerNames = new Set<string>();
+function findInRoot(fileList: FileItem[], patterns: string[]): string | null {
+  const lowerNameMap = new Map<string, string>();
   for (const f of fileList) {
     if (f.type !== 'file' || f.path !== f.name) continue;
-    lowerNames.add(f.name.toLowerCase());
+    lowerNameMap.set(f.name.toLowerCase(), f.name);
   }
   for (const p of patterns) {
-    if (lowerNames.has(p.toLowerCase())) return true;
+    const found = lowerNameMap.get(p.toLowerCase());
+    if (found) return found;
   }
-  return false;
+  return null;
 }
 
 /** 检查是否存在路径以 prefix 开头的文件（用于验证目录非空） */
-function hasFileUnder(fileList: FileItem[], prefix: string): boolean {
+function findFileUnder(fileList: FileItem[], prefix: string): string | null {
   const normalized = prefix.endsWith('/') ? prefix : prefix + '/';
-  for (const f of fileList) {
-    if (f.type === 'file' && f.path.startsWith(normalized)) return true;
-  }
-  return false;
+  const lowerPrefix = normalized.toLowerCase();
+  const found = fileList.find((f) => (
+    f.type === 'file' && f.path.toLowerCase().startsWith(lowerPrefix)
+  ));
+  return found?.path ?? null;
 }
 
-function makeResult(name: string, passed: boolean, maxScore: number): CheckItem {
+function makeResult(
+  name: string,
+  found: string | null,
+  maxScore: number,
+  passReason: string,
+  failReason: string,
+  failEvidence: string[],
+): CheckItem {
+  const passed = Boolean(found);
   return {
     name,
     category: 'file',
     status: passed ? 'pass' : 'fail',
     score: passed ? maxScore : 0,
     maxScore,
+    reason: passed ? passReason : failReason,
+    evidence: passed ? [`命中文件：${found}`] : failEvidence,
   };
 }
 
@@ -52,39 +64,79 @@ function makeResult(name: string, passed: boolean, maxScore: number): CheckItem 
 
 /** README.md — 20 分。支持常见变体（.md / .markdown / .txt / .rst / 无后缀） */
 export function checkReadme(fileList: FileItem[]): CheckItem {
-  return makeResult('README.md', findInRoot(fileList, [
+  const found = findInRoot(fileList, [
     'readme.md', 'readme.markdown', 'readme', 'readme.txt', 'readme.rst',
-  ]), 20);
+  ]);
+  return makeResult(
+    'README.md',
+    found,
+    20,
+    `根目录存在 ${found}，满足开源项目基础说明文档要求。`,
+    '根目录未发现 README 文件，访问者无法快速了解项目用途和使用方式。',
+    ['期望文件：README.md / README / README.txt'],
+  );
 }
 
 /** LICENSE — 15 分。覆盖 LICENSE / COPYING / UNLICENSE 及各种后缀 */
 export function checkLicense(fileList: FileItem[]): CheckItem {
-  return makeResult('LICENSE', findInRoot(fileList, [
+  const found = findInRoot(fileList, [
     'license', 'license.md', 'license.txt', 'license.rst',
     'license.mit', 'license.apache', 'license.gpl',
     'copying', 'copying.txt', 'unlicense',
-  ]), 15);
+  ]);
+  return makeResult(
+    'LICENSE',
+    found,
+    15,
+    `根目录存在 ${found}，项目使用权限边界更清楚。`,
+    '根目录未发现 LICENSE 或 COPYING 文件，使用者难以判断代码授权范围。',
+    ['期望文件：LICENSE / LICENSE.md / COPYING'],
+  );
 }
 
 /** .gitignore — 10 分 */
 export function checkGitignore(fileList: FileItem[]): CheckItem {
-  return makeResult('.gitignore', findInRoot(fileList, ['.gitignore']), 10);
+  const found = findInRoot(fileList, ['.gitignore']);
+  return makeResult(
+    '.gitignore',
+    found,
+    10,
+    '根目录存在 .gitignore，可以减少依赖目录、构建产物和本地配置被误提交的风险。',
+    '根目录未发现 .gitignore，依赖目录、构建产物或 IDE 配置可能被误提交。',
+    ['期望文件：.gitignore'],
+  );
 }
 
 /** CONTRIBUTING.md — 10 分 */
 export function checkContributing(fileList: FileItem[]): CheckItem {
-  return makeResult('CONTRIBUTING.md', findInRoot(fileList, [
+  const found = findInRoot(fileList, [
     'contributing.md', 'contributing', 'contributing.txt',
     'contributing.rst', 'contributing.markdown',
-  ]), 10);
+  ]);
+  return makeResult(
+    'CONTRIBUTING.md',
+    found,
+    10,
+    `根目录存在 ${found}，外部贡献者可以找到参与方式。`,
+    '根目录未发现贡献指南，新贡献者不知道如何提交 Issue、PR 或遵守项目规范。',
+    ['期望文件：CONTRIBUTING.md'],
+  );
 }
 
 /** CHANGELOG.md — 5 分。也接受 CHANGES / HISTORY / RELEASES 等命名 */
 export function checkChangelog(fileList: FileItem[]): CheckItem {
-  return makeResult('CHANGELOG.md', findInRoot(fileList, [
+  const found = findInRoot(fileList, [
     'changelog.md', 'changelog', 'changelog.txt', 'changelog.rst',
     'changes.md', 'changes', 'history.md', 'releases.md',
-  ]), 5);
+  ]);
+  return makeResult(
+    'CHANGELOG.md',
+    found,
+    5,
+    `根目录存在 ${found}，用户可以追踪版本变化。`,
+    '根目录未发现更新日志，用户难以了解版本演进和重要变更。',
+    ['期望文件：CHANGELOG.md / CHANGES.md / RELEASES.md'],
+  );
 }
 
 // ============================================================
@@ -98,7 +150,7 @@ export function checkChangelog(fileList: FileItem[]): CheckItem {
  * 只要命中任一即视为存在。
  */
 export function checkDependencyFile(fileList: FileItem[]): CheckItem {
-  return makeResult('依赖声明文件', findInRoot(fileList, [
+  const found = findInRoot(fileList, [
     // —— Node.js / 前端 ——
     'package.json',
     // —— Python ——
@@ -116,7 +168,15 @@ export function checkDependencyFile(fileList: FileItem[]): CheckItem {
     'composer.json',
     // —— C / C++ / 通用 ——
     'CMakeLists.txt', 'Makefile', 'meson.build',
-  ]), 0);
+  ]);
+  return makeResult(
+    '依赖声明文件',
+    found,
+    0,
+    `根目录存在 ${found}，新用户可以据此安装依赖或识别技术栈。`,
+    '根目录未发现常见依赖声明文件，项目环境搭建方式不够明确。',
+    ['检查范围：package.json / requirements.txt / pyproject.toml / go.mod / Cargo.toml / pom.xml 等'],
+  );
 }
 
 /**
@@ -126,7 +186,15 @@ export function checkDependencyFile(fileList: FileItem[]): CheckItem {
  * 检测 .github/workflows/ 路径下是否有至少一个文件。
  */
 export function checkWorkflowsDir(fileList: FileItem[]): CheckItem {
-  return makeResult('.github/workflows/', hasFileUnder(fileList, '.github/workflows'), 0);
+  const found = findFileUnder(fileList, '.github/workflows');
+  return makeResult(
+    '.github/workflows/',
+    found,
+    0,
+    '检测到 .github/workflows 下的工作流文件，项目具备自动化流程入口。',
+    '未检测到 .github/workflows 下的工作流文件，暂未看到 CI/CD 自动化配置。',
+    ['期望路径：.github/workflows/*.yml 或 .github/workflows/*.yaml'],
+  );
 }
 
 // ============================================================

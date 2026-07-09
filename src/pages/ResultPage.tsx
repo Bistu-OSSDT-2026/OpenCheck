@@ -17,14 +17,16 @@ import {
   StatusIcon,
 } from '@/components'
 import { fetchRepo, isParseError, parseRepoUrl } from '@/api'
-import { analyze } from '@/engine'
+import { RULE_EXPLANATIONS, analyze, generateReport } from '@/engine'
 import { ROUTE } from '@/router/routes'
 import { setLastResult } from '@/store/resultCache'
-import { saveHistory } from '@/store/history'
+import { createHistoryComparison, saveHistory } from '@/store/history'
 import type { AnalysisResult, ApiError, ApiErrorKind } from '@/types'
 
 interface ResultLocationState {
   repoUrl?: string
+  mode?: 'real' | 'demo'
+  result?: AnalysisResult
 }
 
 type ResultErrorKind = ApiErrorKind | 'input'
@@ -36,7 +38,7 @@ interface ResultError {
 
 type ResultState =
   | { status: 'loading'; repoUrl: string }
-  | { status: 'success'; repoUrl: string; result: AnalysisResult }
+  | { status: 'success'; repoUrl: string; result: AnalysisResult; mode: 'real' | 'demo' }
   | { status: 'error'; repoUrl?: string; error: ResultError }
 
 function isApiError(result: Awaited<ReturnType<typeof fetchRepo>>): result is ApiError {
@@ -56,6 +58,19 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleDateString('zh-CN')
 }
 
+function statusLabel(status: string): string {
+  if (status === 'pass') return '通过'
+  if (status === 'partial') return '部分通过'
+  if (status === 'fail') return '未通过'
+  return status
+}
+
+function formatScoreDelta(delta: number): string {
+  if (delta > 0) return `+${delta}`
+  if (delta < 0) return `${delta}`
+  return '无变化'
+}
+
 export default function ResultPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -66,6 +81,8 @@ export default function ResultPage() {
     status: 'loading',
     repoUrl,
   })
+  const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null)
+  const [showRules, setShowRules] = useState(false)
 
   const runAnalysis = useCallback(async (rawUrl: string) => {
     const parsed = parseRepoUrl(rawUrl)
@@ -91,19 +108,43 @@ export default function ResultPage() {
     }
 
     const analysisResult = analyze(githubData)
-    saveHistory(rawUrl, analysisResult)
+    const savedRecord = saveHistory(rawUrl, analysisResult)
+    const historyComparison = createHistoryComparison(analysisResult, savedRecord.previous)
+    const resultForDisplay: AnalysisResult = historyComparison
+      ? { ...analysisResult, historyComparison }
+      : analysisResult
+    if (historyComparison) {
+      resultForDisplay.report = generateReport({
+        timestamp: resultForDisplay.timestamp,
+        repoInfo: resultForDisplay.repoInfo,
+        score: resultForDisplay.score,
+        checks: resultForDisplay.checks,
+        suggestions: resultForDisplay.suggestions,
+        historyComparison: resultForDisplay.historyComparison,
+      })
+    }
     setResultState({
       status: 'success',
       repoUrl: rawUrl,
-      result: analysisResult,
+      result: resultForDisplay,
+      mode: 'real',
     })
   }, [])
 
   useEffect(() => {
     if (hasStarted.current) return
     hasStarted.current = true
+    if (state?.mode === 'demo' && state.result) {
+      setResultState({
+        status: 'success',
+        repoUrl: state.repoUrl ?? state.result.repoInfo.fullName,
+        result: state.result,
+        mode: 'demo',
+      })
+      return
+    }
     void runAnalysis(repoUrl)
-  }, [repoUrl, runAnalysis])
+  }, [repoUrl, runAnalysis, state])
 
   const handleViewReport = (result: AnalysisResult) => {
     setLastResult(result)
@@ -114,6 +155,21 @@ export default function ResultPage() {
     if (resultState.repoUrl) {
       void runAnalysis(resultState.repoUrl)
     }
+  }
+
+  const handleCopyTemplate = async (checkName: string, template: string) => {
+    try {
+      await navigator.clipboard.writeText(template)
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = template
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    setCopiedTemplate(checkName)
+    setTimeout(() => setCopiedTemplate(null), 2000)
   }
 
   if (resultState.status === 'loading') {
@@ -142,6 +198,7 @@ export default function ResultPage() {
 
   const { result } = resultState
   const repo = result.repoInfo
+  const isDemo = resultState.mode === 'demo'
 
   return (
     <PageLayout title="检测结果">
@@ -153,6 +210,7 @@ export default function ResultPage() {
             <p className="repo-card__description">
               {repo.description || '该仓库暂无简介'}
             </p>
+            {isDemo && <p className="repo-card__demo">演示模式：本结果来自本地样例，不会请求 GitHub 或写入历史。</p>}
           </div>
           <LevelTag level={result.score.level} />
         </div>
@@ -174,6 +232,18 @@ export default function ResultPage() {
             level={result.score.level}
           />
           <div className="result-summary__actions">
+            {result.historyComparison && (
+              <div className="result-comparison">
+                <span className="result-comparison__label">较上次</span>
+                <strong className={result.historyComparison.scoreDelta >= 0 ? 'is-positive' : 'is-negative'}>
+                  {formatScoreDelta(result.historyComparison.scoreDelta)}
+                </strong>
+                <span>
+                  上次 {result.historyComparison.previousScore} 分 ·{' '}
+                  {new Date(result.historyComparison.previousTimestamp).toLocaleString('zh-CN')}
+                </span>
+              </div>
+            )}
             <button className="result-btn" type="button" onClick={() => handleViewReport(result)}>
               查看报告
             </button>
@@ -184,13 +254,44 @@ export default function ResultPage() {
         </div>
 
         <section className="result-section">
-          <h2 className="result-section__title">检测明细</h2>
+          <div className="result-section__heading">
+            <h2 className="result-section__title">检测明细</h2>
+            <button
+              className="result-btn result-btn--secondary result-rule-btn"
+              type="button"
+              onClick={() => setShowRules((value) => !value)}
+            >
+              {showRules ? '收起评分规则' : '查看评分规则'}
+            </button>
+          </div>
+          {showRules && (
+            <div className="rule-panel">
+              {RULE_EXPLANATIONS.map((rule) => (
+                <article className="rule-item" key={rule.name}>
+                  <span>{rule.maxScore} 分</span>
+                  <h3>{rule.name}</h3>
+                  <p>{rule.condition}</p>
+                  <p>{rule.importance}</p>
+                </article>
+              ))}
+            </div>
+          )}
           <ul className="check-list">
             {result.checks.map((check) => (
               <li className="check-item" key={check.name}>
                 <div className="check-item__main">
-                  <StatusIcon status={check.status} />
-                  <span className="check-item__name">{check.name}</span>
+                  <div className="check-item__headline">
+                    <StatusIcon status={check.status} />
+                    <span className="check-item__name">{check.name}</span>
+                  </div>
+                  <p className="check-item__reason">{check.reason}</p>
+                  {check.evidence && check.evidence.length > 0 && (
+                    <ul className="check-item__evidence">
+                      {check.evidence.slice(0, 3).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <span className="check-item__score">
                   {check.score} / {check.maxScore}
@@ -210,11 +311,40 @@ export default function ResultPage() {
                 <li className="suggestion-item" key={suggestion.checkName}>
                   <h3>{suggestion.checkName}</h3>
                   <p>{suggestion.content}</p>
+                  {suggestion.template && (
+                    <button
+                      className="suggestion-template-btn"
+                      type="button"
+                      onClick={() => void handleCopyTemplate(suggestion.checkName, suggestion.template ?? '')}
+                    >
+                      {copiedTemplate === suggestion.checkName ? '已复制模板' : '复制模板'}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </section>
+
+        {result.historyComparison && (
+          <section className="result-section">
+            <h2 className="result-section__title">与上次检测对比</h2>
+            {result.historyComparison.changedChecks.length === 0 ? (
+              <p className="suggestion-empty">检测项状态没有变化，当前分数变化为 {formatScoreDelta(result.historyComparison.scoreDelta)}。</p>
+            ) : (
+              <ul className="change-list">
+                {result.historyComparison.changedChecks.map((change) => (
+                  <li className="change-item" key={change.name}>
+                    <strong>{change.name}</strong>
+                    <span>
+                      {statusLabel(change.previousStatus)} -&gt; {statusLabel(change.currentStatus)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
       </section>
     </PageLayout>
   )

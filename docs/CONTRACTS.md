@@ -89,6 +89,12 @@ interface ApiError {
 
 /** fetchRepo 返回值：成功返回数据，失败返回错误对象（不 throw） */
 type FetchRepoResult = GithubData | ApiError;
+
+interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetAt: string;           // ISO 时间戳
+}
 ```
 
 **规则：R1 的所有异步函数跨边界不抛异常。** 消费者用 `if ('kind' in result)` 分支判断，不写 try/catch。
@@ -116,9 +122,11 @@ function fetchRepoInfo(owner: string, repo: string, token?: string): Promise<Rep
 function fetchFileList(owner: string, repo: string, token?: string): Promise<FileItem[] | ApiError>;
 function fetchFileContent(owner: string, repo: string, path: string, token?: string): Promise<string | ApiError>;
 function fetchRepo(owner: string, repo: string, token?: string): Promise<GithubData | ApiError>;
+function fetchRateLimit(token?: string): Promise<RateLimitInfo | ApiError>;
 ```
 
 `fetchRepo` 内部并行调用 3 个独立函数并组装 `GithubData`。自动附带 Token（如已配置）。README.md 不存在时 `readmeContent` 为 `''`。任一部分失败则返回对应 `ApiError`。
+`fetchRateLimit` 用于 Token 页展示当前 GitHub API 额度，不影响检测主流程。
 
 > **Mock 数据**：R1 提供 `MOCK_GITHUB_DATA`（硬编码 GithubData）和 `fetchMockRepo()`（模拟延迟的 fetchRepo），供 Day 1-2 前端独立开发。
 
@@ -152,11 +160,14 @@ interface CheckItem {
   status: CheckStatus;       // 文件类只有 pass/fail
   score: number;
   maxScore: number;
+  reason: string;            // 判定原因，用于结果页和报告解释为什么是当前结果
+  evidence?: string[];       // 命中的文件、章节、关键词或统计信息，最多展示前几项
 }
 
 interface Suggestion {
   checkName: string;         // 对应 CheckItem.name
   content: string;           // 建议正文
+  template?: string;         // 可复制到 README / 协作文件中的改进模板
 }
 
 interface ScoreInfo {
@@ -171,6 +182,7 @@ interface AnalysisResult {
   score: ScoreInfo;
   checks: CheckItem[];       // 固定 9 项，顺序见 PRD 附录 A
   suggestions: Suggestion[];  // 仅包含 status 不为 'pass' 的项
+  historyComparison?: HistoryComparison; // 与上次同仓库检测的差异（如存在）
   report: string;            // 完整的 Markdown 检测报告文本，R2 独占生成
 }
 ```
@@ -237,6 +249,16 @@ interface EmptyStateProps     { text: string; action?: React.ReactNode }
 
 R4 是集成终端——它消费 R1/R2/R3 的导出，但**不对外导出任何共享契约**。只有两个页面组件（`HomePage`、`ResultPage`）挂在路由上，被 R3 的 App.tsx 引用。
 
+`ResultPage` 的路由 state 支持真实检测和本地演示两种模式：
+
+```typescript
+interface ResultLocationState {
+  repoUrl?: string;
+  mode?: 'real' | 'demo';
+  result?: AnalysisResult;   // demo 模式使用，不请求 GitHub，不写历史
+}
+```
+
 ---
 
 ### R5 导出（所有者：R5 / 消费者：R4）
@@ -250,6 +272,27 @@ interface CheckSummaryItem {
   status: CheckStatus;       // 'pass' | 'partial' | 'fail'
 }
 
+interface HistorySnapshot {
+  score: number;
+  level: '优秀' | '较完整' | '基本可用' | '需要完善';
+  timestamp: string;
+  checkSummary: CheckSummaryItem[];
+}
+
+interface CheckStatusChange {
+  name: string;
+  previousStatus: CheckStatus;
+  currentStatus: CheckStatus;
+}
+
+interface HistoryComparison {
+  previousScore: number;
+  previousLevel: '优秀' | '较完整' | '基本可用' | '需要完善';
+  previousTimestamp: string;
+  scoreDelta: number;
+  changedChecks: CheckStatusChange[];
+}
+
 interface HistoryRecord {
   repoUrl: string;
   repoName: string;          // "owner/repo"
@@ -257,6 +300,7 @@ interface HistoryRecord {
   level: '优秀' | '较完整' | '基本可用' | '需要完善';
   timestamp: string;         // ISO 时间戳
   checkSummary: CheckSummaryItem[];
+  previous?: HistorySnapshot;
 }
 ```
 
@@ -264,13 +308,14 @@ interface HistoryRecord {
 
 ```typescript
 // src/store/history.ts — 所有者：R5
-function saveHistory(repoUrl: string, result: AnalysisResult): void;
+function saveHistory(repoUrl: string, result: AnalysisResult): HistoryRecord;
+function createHistoryComparison(result: AnalysisResult, previous?: HistorySnapshot): HistoryComparison | undefined;
 function loadHistory(): HistoryRecord[];
 function deleteHistory(repoUrl: string): void;
 function clearHistory(): void;
 ```
 
-当前已由 R5 实现真实 localStorage 存储逻辑，key 使用 `'opencheck_history'`。同一 `repoUrl` 重复保存会覆盖旧记录，读取时按检测时间倒序返回。
+当前已由 R5 实现真实 localStorage 存储逻辑，key 使用 `'opencheck_history'`。同一 `repoName` 重复保存会覆盖旧记录并把旧记录摘要保存为 `previous`，读取时按检测时间倒序返回。
 
 `saveHistory` 由 R5 内部从 `AnalysisResult` 提取字段组装 `HistoryRecord`。**R4 只传 `(repoUrl, result)`，不自己拼接 HistoryRecord。**
 

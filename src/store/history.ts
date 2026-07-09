@@ -6,16 +6,25 @@
  * R4 永远不自己构造 historyItem。
  */
 
-import type { AnalysisResult, HistoryRecord, CheckSummaryItem } from '@/types'
+import type {
+  AnalysisResult,
+  CheckSummaryItem,
+  HistoryComparison,
+  HistoryRecord,
+  HistorySnapshot,
+} from '@/types'
 
 const HISTORY_KEY = 'opencheck_history'
 
-export function saveHistory(repoUrl: string, result: AnalysisResult): void {
+export function saveHistory(repoUrl: string, result: AnalysisResult): HistoryRecord {
   const records = loadAll()
   const summary: CheckSummaryItem[] = result.checks.map((c) => ({
     name: c.name,
     status: c.status,
   }))
+  const normalizedRepoName = normalizeRepoName(result.repoInfo.fullName)
+  const idx = records.findIndex((r) => normalizeRepoName(r.repoName) === normalizedRepoName)
+  const previous = idx >= 0 ? toSnapshot(records[idx]) : undefined
 
   const record: HistoryRecord = {
     repoUrl,
@@ -24,10 +33,10 @@ export function saveHistory(repoUrl: string, result: AnalysisResult): void {
     level: result.score.level,
     timestamp: result.timestamp,
     checkSummary: summary,
+    previous,
   }
 
-  // 以 repoUrl 去重，同仓库覆盖旧记录
-  const idx = records.findIndex((r) => r.repoUrl === repoUrl)
+  // 以 repoName 去重，避免同仓库不同 URL 写成多条历史。
   if (idx >= 0) {
     records[idx] = record
   } else {
@@ -38,6 +47,7 @@ export function saveHistory(repoUrl: string, result: AnalysisResult): void {
   records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
   persist(records)
+  return record
 }
 
 export function loadHistory(): HistoryRecord[] {
@@ -57,6 +67,32 @@ export function clearHistory(): void {
   }
 }
 
+export function createHistoryComparison(
+  result: AnalysisResult,
+  previous?: HistorySnapshot,
+): HistoryComparison | undefined {
+  if (!previous) return undefined
+
+  const previousStatusMap = new Map(previous.checkSummary.map((item) => [item.name, item.status]))
+  const changedChecks = result.checks
+    .map((check) => ({
+      name: check.name,
+      previousStatus: previousStatusMap.get(check.name),
+      currentStatus: check.status,
+    }))
+    .filter((item): item is HistoryComparison['changedChecks'][number] =>
+      item.previousStatus !== undefined && item.previousStatus !== item.currentStatus,
+    )
+
+  return {
+    previousScore: previous.score,
+    previousLevel: previous.level,
+    previousTimestamp: previous.timestamp,
+    scoreDelta: result.score.total - previous.score,
+    changedChecks,
+  }
+}
+
 // ---- 内部工具 ----
 
 function loadAll(): HistoryRecord[] {
@@ -69,6 +105,19 @@ function loadAll(): HistoryRecord[] {
     return parsed
   } catch {
     return []
+  }
+}
+
+function normalizeRepoName(repoName: string): string {
+  return repoName.trim().toLowerCase()
+}
+
+function toSnapshot(record: HistoryRecord): HistorySnapshot {
+  return {
+    score: record.score,
+    level: record.level,
+    timestamp: record.timestamp,
+    checkSummary: record.checkSummary,
   }
 }
 
