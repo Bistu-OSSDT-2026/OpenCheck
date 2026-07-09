@@ -1,5 +1,6 @@
 // ============================================================
 // R2 分析引擎层 — Mock 数据（用于开发和测试）
+// 以 facebook/react 为参考，覆盖全部 13 个检测项
 // ============================================================
 
 import type { GithubData, AnalysisResult } from '@/types';
@@ -8,9 +9,9 @@ import { analyze } from './analyze';
 /**
  * Mock GitHub 仓库数据
  *
- * 以 facebook/react 为参考构造的示例数据，不需要真实调用 GitHub API。
- * 文件列表包含了一个"较完整"的开源项目应有的典型文件，
- * README 内容覆盖了运行说明、技术栈说明、项目结构说明。
+ * 模拟一个"社区标准满分"的开源项目：
+ * - 7 个文件检测项全部通过
+ * - README 覆盖全部 6 个内容维度
  */
 export const mockGithubData: GithubData = {
   repoInfo: {
@@ -29,15 +30,18 @@ export const mockGithubData: GithubData = {
   },
 
   fileList: [
-    { name: '.editorconfig', path: '.editorconfig', type: 'file' },
-    { name: '.github', path: '.github', type: 'dir' },
-    { name: '.gitignore', path: '.gitignore', type: 'file' },
-    { name: 'CHANGELOG.md', path: 'CHANGELOG.md', type: 'file' },
-    { name: 'CODE_OF_CONDUCT.md', path: 'CODE_OF_CONDUCT.md', type: 'file' },
-    { name: 'CONTRIBUTING.md', path: 'CONTRIBUTING.md', type: 'file' },
-    { name: 'LICENSE', path: 'LICENSE', type: 'file' },
+    // 5 个评分文件
     { name: 'README.md', path: 'README.md', type: 'file' },
+    { name: 'LICENSE', path: 'LICENSE', type: 'file' },
+    { name: '.gitignore', path: '.gitignore', type: 'file' },
+    { name: 'CONTRIBUTING.md', path: 'CONTRIBUTING.md', type: 'file' },
+    { name: 'CHANGELOG.md', path: 'CHANGELOG.md', type: 'file' },
+    // 2 个补充文件
     { name: 'package.json', path: 'package.json', type: 'file' },
+    { name: 'ci.yml', path: '.github/workflows/ci.yml', type: 'file' },
+    { name: 'release.yml', path: '.github/workflows/release.yml', type: 'file' },
+    // 目录
+    { name: '.editorconfig', path: '.editorconfig', type: 'file' },
     { name: 'compiler', path: 'compiler', type: 'dir' },
     { name: 'fixtures', path: 'fixtures', type: 'dir' },
     { name: 'packages', path: 'packages', type: 'dir' },
@@ -45,91 +49,108 @@ export const mockGithubData: GithubData = {
     { name: 'src', path: 'src', type: 'dir' },
   ],
 
-  readmeContent: `# React
-
-React is a JavaScript library for building user interfaces.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (>= 18)
-- npm or yarn
-
-### Installation
-
-\`\`\`bash
-# Clone the repository
-git clone https://github.com/facebook/react.git
-cd react
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Run tests
-npm test
-
-# Start the development server
-npm start
-\`\`\`
-
-## Tech Stack / Built With
-
-- **JavaScript** — Core language
-- **TypeScript** — Type definitions and Flow
-- **React** — The library itself :)
-- **Rollup** — Module bundler
-- **Jest** — Testing framework
-- **ESLint** — Code linting
-- **Prettier** — Code formatting
-
-## Project Structure
-
-\`\`\`
-react/
-├── compiler/       # React Compiler (React Forget)
-├── fixtures/       # Test fixtures
-├── packages/       # React packages (react, react-dom, etc.)
-│   ├── react/
-│   ├── react-dom/
-│   ├── react-reconciler/
-│   └── ...
-├── scripts/        # Build and CI scripts
-│   ├── jest/
-│   ├── rollup/
-│   └── ...
-└── src/            # Source code
-\`\`\`
-
-## Contributing
-
-Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct
-and the process for submitting pull requests.
-
-## Deployment / Release
-
-React releases are published to npm. See the [release workflow](./scripts/release/README.md)
-for details.
-
-## Screenshots
-
-![React DevTools](https://react.dev/images/home/dom_manipulation.png)
-
-## License
-
-React is [MIT licensed](./LICENSE).
-`,
+  readmeContent: [
+    '# React',
+    '',
+    '![React banner](https://example.com/react-banner.png)',
+    '',
+    'React is a JavaScript library for building user interfaces.',
+    'It lets you compose complex UIs from small, isolated pieces of code called "components".',
+    'React can render on the server using Node.js, on the web, and on mobile devices using React Native.',
+    '',
+    '## Features',
+    '',
+    '- **Declarative**: React makes it painless to create interactive UIs.',
+    '- **Component-Based**: Build encapsulated components that manage their own state.',
+    '- **Learn Once, Write Anywhere**: Develop new features without rewriting existing code.',
+    '',
+    '## Getting Started',
+    '',
+    '### Prerequisites',
+    '- Node.js (>= 18)',
+    '- npm or yarn',
+    '',
+    '### Installation',
+    '',
+    '```bash',
+    'git clone https://github.com/facebook/react.git',
+    'cd react',
+    'npm install',
+    'npm run build',
+    'npm test',
+    'npm start',
+    '```',
+    '',
+    '## API Reference',
+    '',
+    '### React.createElement',
+    '',
+    '```js',
+    'React.createElement(type, [props], [...children])',
+    '```',
+    '',
+    'Creates and returns a new React element.',
+    '',
+    '### React.useState',
+    '',
+    '```js',
+    'const [state, setState] = useState(initialState);',
+    '```',
+    '',
+    'Returns a stateful value and a function to update it.',
+    '',
+    '## Tech Stack / Built With',
+    '',
+    '- **JavaScript** — Core language',
+    '- **TypeScript** — Type definitions',
+    '- **React** — The library itself :)',
+    '- **Rollup** — Module bundler',
+    '- **Jest** — Testing framework',
+    '- **ESLint** — Code linting',
+    '- **Prettier** — Code formatting',
+    '',
+    '## Project Structure',
+    '',
+    '```',
+    'react/',
+    '├── compiler/       # React Compiler (React Forget)',
+    '├── fixtures/       # Test fixtures',
+    '├── packages/       # React packages (react, react-dom, etc.)',
+    '│   ├── react/',
+    '│   ├── react-dom/',
+    '│   └── react-reconciler/',
+    '├── scripts/        # Build and CI scripts',
+    '│   ├── jest/',
+    '│   ├── rollup/',
+    '│   └── release/',
+    '└── src/            # Source code',
+    '```',
+    '',
+    '## Contributing',
+    '',
+    'Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct',
+    'and the process for submitting pull requests.',
+    '',
+    '## Deployment / Release',
+    '',
+    'React releases are published to npm. Build the production bundle with:',
+    '',
+    '```bash',
+    'npm run build',
+    'npm publish',
+    '```',
+    '',
+    'See the [release workflow](./scripts/release/README.md) for the full CI/CD pipeline details.',
+    '',
+    '## Screenshots',
+    '',
+    '![React DevTools](https://react.dev/images/home/dom_manipulation.png)',
+    '',
+    '## License',
+    '',
+    'React is [MIT licensed](./LICENSE).',
+  ].join('\n'),
 };
 
-/**
- * Mock 分析结果
- *
- * 由 analyze(mockGithubData) 实时计算生成。
- * 提供给 R4/R5 在 R1/R2 真实联调前使用。
- *
- * 注意：每次导入时会重新计算，确保与 analyze() 逻辑保持同步。
- */
+/** Mock 分析结果 —— 由 analyze(mockGithubData) 实时计算 */
 export const mockAnalysisResult: AnalysisResult = analyze(mockGithubData);

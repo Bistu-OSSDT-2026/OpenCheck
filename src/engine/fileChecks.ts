@@ -1,208 +1,214 @@
 // ============================================================
-// R2 分析引擎层 — 文件存在性检测
+// R2 分析引擎层 — 文件存在性检测（7 项）
+// 严格对齐 PRD_OpenCheck.md §5.3.1 + §5.4.1
 // ============================================================
 
 import type { CheckItem, FileItem } from '@/types';
 
+// ============================================================
+// 工具函数
+// ============================================================
+
 /**
- * 在文件列表中查找匹配的文件名（大小写不敏感）
- * 只检查根目录下的文件，返回找到的文件名，未找到返回 null
+ * 在根目录文件列表中查找匹配的文件名（大小写不敏感）
+ * 只查根目录（path === name），PRD §5.3.1 明确要求"仓库根目录下"
  */
-function findFile(
-  fileList: FileItem[],
-  patterns: string[]
-): string | null {
-  const lowerNames = new Map<string, string>();
+function findInRoot(fileList: FileItem[], patterns: string[]): string | null {
+  const lowerNameMap = new Map<string, string>();
   for (const f of fileList) {
-    // 只检查根目录下的文件（path === name 且 type === 'file' 表示在根目录）
     if (f.type !== 'file' || f.path !== f.name) continue;
-    const key = f.name.toLowerCase();
-    if (!lowerNames.has(key)) {
-      lowerNames.set(key, f.name);
-    }
+    lowerNameMap.set(f.name.toLowerCase(), f.name);
   }
-  for (const pattern of patterns) {
-    const found = lowerNames.get(pattern.toLowerCase());
-    if (found !== undefined) {
-      return found;
-    }
+  for (const p of patterns) {
+    const found = lowerNameMap.get(p.toLowerCase());
+    if (found) return found;
   }
   return null;
 }
 
-/** 检测 README.md 是否存在（大小写不敏感） */
+/**
+ * 检查文件列表中是否存在路径以 prefix 开头的文件
+ * 用于检测 .github/workflows/ 目录下是否有文件（PRD 要求"非空目录才算存在"）
+ */
+function findFileUnder(fileList: FileItem[], prefix: string): string | null {
+  const normalized = prefix.endsWith('/') ? prefix : prefix + '/';
+  const lowerPrefix = normalized.toLowerCase();
+  const found = fileList.find((f) => (
+    f.type === 'file' && f.path.toLowerCase().startsWith(lowerPrefix)
+  ));
+  return found?.path ?? null;
+}
+
+// ============================================================
+// 构建结果
+// ============================================================
+
+function makeResult(
+  name: string,
+  found: string | null,
+  maxScore: number,
+  passReason: string,
+  failReason: string,
+  failEvidence: string[],
+): CheckItem {
+  const passed = Boolean(found);
+  return {
+    name,
+    category: 'file',
+    status: passed ? 'pass' : 'fail',
+    score: passed ? maxScore : 0,
+    maxScore,
+    reason: passed ? passReason : failReason,
+    evidence: passed ? [`命中文件：${found}`] : failEvidence,
+  };
+}
+
+// ============================================================
+// 评分检测项（5 项，共 60 分）—— PRD §5.4.1
+// ============================================================
+
+/** README.md — 20 分 */
 export function checkReadme(fileList: FileItem[]): CheckItem {
-  const patterns = ['readme.md', 'readme', 'readme.txt', 'readme.rst', 'readme.markdown'];
-  const found = findFile(fileList, patterns);
-  return {
-    name: 'README.md',
-    category: 'file',
-    status: found ? 'pass' : 'fail',
-    score: found ? 20 : 0,
-    maxScore: 20,
-    reason: found
-      ? `根目录存在 ${found}，满足开源项目基础说明文档要求。`
-      : '根目录未发现 README 文件，访问者无法快速了解项目用途和使用方式。',
-    evidence: found ? [`命中文件：${found}`] : ['期望文件：README.md / README / README.txt'],
-  };
+  const found = findInRoot(fileList, [
+    'readme.md', 'readme.markdown', 'readme', 'readme.txt', 'readme.rst',
+  ]);
+  return makeResult(
+    'README.md',
+    found,
+    20,
+    `根目录存在 ${found}，满足开源项目基础说明文档要求。`,
+    '根目录未发现 README 文件，访问者无法快速了解项目用途和使用方式。',
+    ['期望文件：README.md / README / README.txt'],
+  );
 }
 
-/** 检测 LICENSE 是否存在（支持 LICENSE、LICENSE.md、LICENSE.txt 等） */
+/** LICENSE — 15 分 */
 export function checkLicense(fileList: FileItem[]): CheckItem {
-  const patterns = [
-    'license',
-    'license.md',
-    'license.txt',
-    'license.rst',
-    'license.mit',
-    'license.apache',
-    'license.gpl',
-    'copying',
-    'copying.txt',
-    'unlicense',
-  ];
-  const found = findFile(fileList, patterns);
-  return {
-    name: 'LICENSE',
-    category: 'file',
-    status: found ? 'pass' : 'fail',
-    score: found ? 15 : 0,
-    maxScore: 15,
-    reason: found
-      ? `根目录存在 ${found}，项目使用权限边界更清楚。`
-      : '根目录未发现 LICENSE 或 COPYING 文件，使用者难以判断代码授权范围。',
-    evidence: found ? [`命中文件：${found}`] : ['期望文件：LICENSE / LICENSE.md / COPYING'],
-  };
+  const found = findInRoot(fileList, [
+    'license', 'license.md', 'license.txt', 'license.rst',
+    'license.mit', 'license.apache', 'license.gpl',
+    'copying', 'copying.txt', 'unlicense',
+  ]);
+  return makeResult(
+    'LICENSE',
+    found,
+    15,
+    `根目录存在 ${found}，项目使用权限边界更清楚。`,
+    '根目录未发现 LICENSE 或 COPYING 文件，使用者难以判断代码授权范围。',
+    ['期望文件：LICENSE / LICENSE.md / COPYING'],
+  );
 }
 
-/** 检测 .gitignore 是否存在 */
+/** .gitignore — 10 分 */
 export function checkGitignore(fileList: FileItem[]): CheckItem {
-  const patterns = ['.gitignore'];
-  const found = findFile(fileList, patterns);
-  return {
-    name: '.gitignore',
-    category: 'file',
-    status: found ? 'pass' : 'fail',
-    score: found ? 10 : 0,
-    maxScore: 10,
-    reason: found
-      ? '根目录存在 .gitignore，可以减少依赖目录、构建产物和本地配置被误提交的风险。'
-      : '根目录未发现 .gitignore，依赖目录、构建产物或 IDE 配置可能被误提交。',
-    evidence: found ? [`命中文件：${found}`] : ['期望文件：.gitignore'],
-  };
+  const found = findInRoot(fileList, ['.gitignore']);
+  return makeResult(
+    '.gitignore',
+    found,
+    10,
+    '根目录存在 .gitignore，可以减少依赖目录、构建产物和本地配置被误提交的风险。',
+    '根目录未发现 .gitignore，依赖目录、构建产物或 IDE 配置可能被误提交。',
+    ['期望文件：.gitignore'],
+  );
 }
 
-/** 检测 CONTRIBUTING.md 是否存在（支持 CONTRIBUTING、CONTRIBUTING.md） */
+/** CONTRIBUTING.md — 10 分 */
 export function checkContributing(fileList: FileItem[]): CheckItem {
-  const patterns = [
-    'contributing.md',
-    'contributing',
-    'contributing.txt',
-    'contributing.rst',
-    'contributing.markdown',
-  ];
-  const found = findFile(fileList, patterns);
-  return {
-    name: 'CONTRIBUTING.md',
-    category: 'file',
-    status: found ? 'pass' : 'fail',
-    score: found ? 10 : 0,
-    maxScore: 10,
-    reason: found
-      ? `根目录存在 ${found}，外部贡献者可以找到参与方式。`
-      : '根目录未发现贡献指南，新贡献者不知道如何提交 Issue、PR 或遵守项目规范。',
-    evidence: found ? [`命中文件：${found}`] : ['期望文件：CONTRIBUTING.md'],
-  };
+  const found = findInRoot(fileList, [
+    'contributing.md', 'contributing', 'contributing.txt',
+    'contributing.rst', 'contributing.markdown',
+  ]);
+  return makeResult(
+    'CONTRIBUTING.md',
+    found,
+    10,
+    `根目录存在 ${found}，外部贡献者可以找到参与方式。`,
+    '根目录未发现贡献指南，新贡献者不知道如何提交 Issue、PR 或遵守项目规范。',
+    ['期望文件：CONTRIBUTING.md'],
+  );
 }
 
-/** 检测 CHANGELOG.md 是否存在（支持 CHANGELOG、CHANGELOG.md、CHANGELOG.txt） */
+/** CHANGELOG.md — 5 分 */
 export function checkChangelog(fileList: FileItem[]): CheckItem {
-  const patterns = [
-    'changelog.md',
-    'changelog',
-    'changelog.txt',
-    'changelog.rst',
-    'changes.md',
-    'history.md',
-    'releases.md',
-  ];
-  const found = findFile(fileList, patterns);
-  return {
-    name: 'CHANGELOG.md',
-    category: 'file',
-    status: found ? 'pass' : 'fail',
-    score: found ? 5 : 0,
-    maxScore: 5,
-    reason: found
-      ? `根目录存在 ${found}，用户可以追踪版本变化。`
-      : '根目录未发现更新日志，用户难以了解版本演进和重要变更。',
-    evidence: found ? [`命中文件：${found}`] : ['期望文件：CHANGELOG.md / CHANGES.md / RELEASES.md'],
-  };
+  const found = findInRoot(fileList, [
+    'changelog.md', 'changelog', 'changelog.txt', 'changelog.rst',
+    'changes.md', 'history.md', 'releases.md',
+  ]);
+  return makeResult(
+    'CHANGELOG.md',
+    found,
+    5,
+    `根目录存在 ${found}，用户可以追踪版本变化。`,
+    '根目录未发现更新日志，用户难以了解版本演进和重要变更。',
+    ['期望文件：CHANGELOG.md / CHANGES.md / RELEASES.md'],
+  );
 }
 
-/** 检测依赖声明文件是否存在 */
+// ============================================================
+// 补充检测项（2 项，不计分）—— PRD §5.3.1 要求检测但 §5.4.1 无分值
+// ============================================================
+
+/**
+ * 依赖声明文件（不计分）
+ *
+ * PRD §5.3.1："如 package.json / requirements.txt / go.mod / Cargo.toml /
+ * pom.xml 等（根据项目语言判断）"
+ */
 export function checkDependencyFile(fileList: FileItem[]): CheckItem {
-  const patterns = [
-    'package.json',
-    'requirements.txt',
-    'go.mod',
-    'Cargo.toml',
-    'pom.xml',
-    'build.gradle',
-    'build.gradle.kts',
-    'settings.gradle',
-    'Gemfile',
-    'mix.exs',
-    'rebar.config',
-    'CMakeLists.txt',
-    'Makefile',
-  ];
-  const found = findFile(fileList, patterns);
-  return {
-    name: '依赖声明文件',
-    category: 'file',
-    status: found ? 'pass' : 'fail',
-    score: found ? 0 : 0,   // PRD 评分表未给此项独立分值，暂为信息性检测
-    maxScore: 0,
-    reason: found
-      ? `根目录存在 ${found}，新用户可以据此安装依赖或识别技术栈。`
-      : '根目录未发现常见依赖声明文件，项目环境搭建方式不够明确。',
-    evidence: found
-      ? [`命中文件：${found}`]
-      : ['检查范围：package.json / requirements.txt / go.mod / Cargo.toml / pom.xml 等'],
-  };
+  const found = findInRoot(fileList, [
+    'package.json',        // Node.js
+    'requirements.txt',    // Python (pip)
+    'pyproject.toml',      // Python (modern)
+    'setup.py',            // Python (legacy)
+    'go.mod',              // Go
+    'Cargo.toml',          // Rust
+    'pom.xml',             // Java (Maven)
+    'build.gradle',        // Java (Gradle)
+    'build.gradle.kts',    // Java (Gradle Kotlin DSL)
+    'Gemfile',             // Ruby
+    'composer.json',       // PHP
+    'CMakeLists.txt',      // C/C++ (CMake)
+    'Makefile',            // 通用
+    'meson.build',         // C/C++ (Meson)
+  ]);
+  return makeResult(
+    '依赖声明文件',
+    found,
+    0,
+    `根目录存在 ${found}，新用户可以据此安装依赖或识别技术栈。`,
+    '根目录未发现常见依赖声明文件，项目环境搭建方式不够明确。',
+    ['检查范围：package.json / requirements.txt / pyproject.toml / go.mod / Cargo.toml / pom.xml 等'],
+  );
 }
 
 /**
- * 检测 .github/workflows/ 目录是否存在且非空
+ * .github/workflows/ 目录（不计分）
  *
- * 注意：R1 的 GithubData.fileList 仅包含根目录内容，
- * 此处仅能判断 .github 目录是否存在。无法验证 workflows 子目录是否非空。
- * 实际非空校验需 R1 扩展 fileList 范围或提供额外 API。
+ * PRD §5.3.1："CI/CD 工作流配置目录（非空目录才算存在）"
+ *
+ * 检测 .github/workflows/ 路径下是否有至少一个文件。
  */
 export function checkWorkflowsDir(fileList: FileItem[]): CheckItem {
-  // 查找 .github 目录（根目录下）
-  const hasGithubDir = fileList.some(
-    (f) => f.type === 'dir' && f.name.toLowerCase() === '.github',
+  const found = findFileUnder(fileList, '.github/workflows');
+  return makeResult(
+    '.github/workflows/',
+    found,
+    0,
+    '检测到 .github/workflows 下的工作流文件，项目具备自动化流程入口。',
+    '未检测到 .github/workflows 下的工作流文件，暂未看到 CI/CD 自动化配置。',
+    ['期望路径：.github/workflows/*.yml 或 .github/workflows/*.yaml'],
   );
-  return {
-    name: '.github/workflows/',
-    category: 'file',
-    status: hasGithubDir ? 'pass' : 'fail',
-    score: hasGithubDir ? 0 : 0,  // PRD 评分表未给此项独立分值，暂为信息性检测
-    maxScore: 0,
-    reason: hasGithubDir
-      ? '根目录存在 .github 目录，项目可能已经配置 Issue 模板或 GitHub Actions。'
-      : '根目录未发现 .github 目录，暂未看到 GitHub 协作或自动化配置入口。',
-    evidence: hasGithubDir
-      ? ['命中目录：.github']
-      : ['期望目录：.github/workflows/（当前 API 仅读取根目录，无法深入确认非空）'],
-  };
 }
 
+// ============================================================
+// 批量执行
+// ============================================================
+
 /**
- * 执行所有文件存在性检测
- * 返回 7 个 CheckItem
+ * 执行所有文件存在性检测（7 项）
+ *
+ * 前 5 项计入总分（共 60 分，PRD §5.4.1），
+ * 后 2 项为补充检测（不计分，PRD §5.3.1）。
  */
 export function runFileChecks(fileList: FileItem[]): CheckItem[] {
   return [
