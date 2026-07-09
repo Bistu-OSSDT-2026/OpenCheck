@@ -37,7 +37,7 @@ export default function HistoryPage() {
   }
 
   const handleClick = (record: HistoryRecord) => {
-    navigate(ROUTE.HOME, { state: { prefillUrl: record.repoUrl } })
+    navigate(ROUTE.RESULT, { state: { repoUrl: record.repoUrl } })
   }
 
   if (records.length === 0) {
