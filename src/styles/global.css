@@ -964,14 +964,16 @@ a {
 }
 
 .history-clear-btn,
-.history-item__delete {
+.history-item__delete,
+.history-item__retest {
   border: 1px solid #fecaca;
   background: var(--color-surface-strong);
   color: var(--color-danger);
 }
 
 .history-clear-btn:hover,
-.history-item__delete:hover {
+.history-item__delete:hover,
+.history-item__retest:hover {
   background: var(--color-danger-soft);
   border-color: #fca5a5;
 }
@@ -983,7 +985,7 @@ a {
 
 .history-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 16px;
   padding: 18px 20px;
@@ -1031,6 +1033,67 @@ a {
   min-height: 44px;
   padding: 0 12px;
   font-size: 12px;
+}
+
+.history-item__retest {
+  min-height: 44px;
+  padding: 0 12px;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-size: 12px;
+}
+
+.history-item__retest:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-hover);
+}
+
+.history-item__delta,
+.result-comparison strong {
+  color: var(--level-excellent);
+  font-weight: 850;
+}
+
+.history-item__delta.is-negative,
+.result-comparison strong.is-negative {
+  color: var(--level-poor);
+}
+
+.result-comparison {
+  display: grid;
+  gap: 4px;
+  min-width: min(100%, 260px);
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.result-comparison__label {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.change-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+
+.change-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-strong);
+}
+
+.change-item span {
+  color: var(--color-muted);
+  font-weight: 750;
 }
 
 /* ===== R5：Token 配置页 ===== */
@@ -1135,7 +1198,8 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .history-item__delete {
+  .history-item__delete,
+  .history-item__retest {
     width: 100%;
   }
 }

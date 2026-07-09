@@ -17,10 +17,10 @@ import {
   StatusIcon,
 } from '@/components'
 import { fetchRepo, isParseError, parseRepoUrl } from '@/api'
-import { analyze } from '@/engine'
+import { analyze, generateReport } from '@/engine'
 import { ROUTE } from '@/router/routes'
 import { setLastResult } from '@/store/resultCache'
-import { saveHistory } from '@/store/history'
+import { createHistoryComparison, saveHistory } from '@/store/history'
 import type { AnalysisResult, ApiError, ApiErrorKind } from '@/types'
 
 interface ResultLocationState {
@@ -54,6 +54,19 @@ function getErrorMessage(error: ResultError): string {
 function formatDate(value: string): string {
   if (!value) return '未知'
   return new Date(value).toLocaleDateString('zh-CN')
+}
+
+function statusLabel(status: string): string {
+  if (status === 'pass') return '通过'
+  if (status === 'partial') return '部分通过'
+  if (status === 'fail') return '未通过'
+  return status
+}
+
+function formatScoreDelta(delta: number): string {
+  if (delta > 0) return `+${delta}`
+  if (delta < 0) return `${delta}`
+  return '无变化'
 }
 
 export default function ResultPage() {
@@ -92,11 +105,25 @@ export default function ResultPage() {
     }
 
     const analysisResult = analyze(githubData)
-    saveHistory(rawUrl, analysisResult)
+    const savedRecord = saveHistory(rawUrl, analysisResult)
+    const historyComparison = createHistoryComparison(analysisResult, savedRecord.previous)
+    const resultForDisplay: AnalysisResult = historyComparison
+      ? { ...analysisResult, historyComparison }
+      : analysisResult
+    if (historyComparison) {
+      resultForDisplay.report = generateReport({
+        timestamp: resultForDisplay.timestamp,
+        repoInfo: resultForDisplay.repoInfo,
+        score: resultForDisplay.score,
+        checks: resultForDisplay.checks,
+        suggestions: resultForDisplay.suggestions,
+        historyComparison: resultForDisplay.historyComparison,
+      })
+    }
     setResultState({
       status: 'success',
       repoUrl: rawUrl,
-      result: analysisResult,
+      result: resultForDisplay,
     })
   }, [])
 
@@ -190,6 +217,18 @@ export default function ResultPage() {
             level={result.score.level}
           />
           <div className="result-summary__actions">
+            {result.historyComparison && (
+              <div className="result-comparison">
+                <span className="result-comparison__label">较上次</span>
+                <strong className={result.historyComparison.scoreDelta >= 0 ? 'is-positive' : 'is-negative'}>
+                  {formatScoreDelta(result.historyComparison.scoreDelta)}
+                </strong>
+                <span>
+                  上次 {result.historyComparison.previousScore} 分 ·{' '}
+                  {new Date(result.historyComparison.previousTimestamp).toLocaleString('zh-CN')}
+                </span>
+              </div>
+            )}
             <button className="result-btn" type="button" onClick={() => handleViewReport(result)}>
               查看报告
             </button>
@@ -250,6 +289,26 @@ export default function ResultPage() {
             </ul>
           )}
         </section>
+
+        {result.historyComparison && (
+          <section className="result-section">
+            <h2 className="result-section__title">与上次检测对比</h2>
+            {result.historyComparison.changedChecks.length === 0 ? (
+              <p className="suggestion-empty">检测项状态没有变化，当前分数变化为 {formatScoreDelta(result.historyComparison.scoreDelta)}。</p>
+            ) : (
+              <ul className="change-list">
+                {result.historyComparison.changedChecks.map((change) => (
+                  <li className="change-item" key={change.name}>
+                    <strong>{change.name}</strong>
+                    <span>
+                      {statusLabel(change.previousStatus)} -&gt; {statusLabel(change.currentStatus)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
       </section>
     </PageLayout>
   )

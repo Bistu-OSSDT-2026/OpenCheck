@@ -66,6 +66,42 @@ function buildSuggestionsList(suggestions: Suggestion[]): string {
     .join('\n');
 }
 
+function buildHistoryComparison(result: Omit<AnalysisResult, 'report'>): string[] {
+  const comparison = result.historyComparison;
+  if (!comparison) return [];
+
+  const delta = comparison.scoreDelta > 0
+    ? `+${comparison.scoreDelta}`
+    : comparison.scoreDelta < 0
+      ? `${comparison.scoreDelta}`
+      : '无变化';
+  const lines = [
+    '---',
+    '',
+    '## 与上次检测对比',
+    '',
+    `| 项目 | 本次 | 上次 | 变化 |`,
+    `|------|------|------|------|`,
+    `| 总分 | ${result.score.total} | ${comparison.previousScore} | ${delta} |`,
+    `| 等级 | ${result.score.level} | ${comparison.previousLevel} | - |`,
+    '',
+  ];
+
+  if (comparison.changedChecks.length === 0) {
+    lines.push('检测项状态没有变化。', '');
+    return lines;
+  }
+
+  lines.push('| 检测项 | 上次 | 本次 |', '|--------|------|------|');
+  for (const change of comparison.changedChecks) {
+    lines.push(
+      `| ${escapeMd(change.name)} | ${statusLabel(change.previousStatus)} | ${statusLabel(change.currentStatus)} |`,
+    );
+  }
+  lines.push('');
+  return lines;
+}
+
 /**
  * 生成完整的 Markdown 检测报告
  *
@@ -130,6 +166,7 @@ export function generateReport(result: Omit<AnalysisResult, 'report'>): string {
     '',
     buildSuggestionsList(suggestions),
     '',
+    ...buildHistoryComparison(result),
     '---',
     '',
     `*Powered by OpenCheck — 开源项目体检助手*`,

@@ -174,6 +174,7 @@ interface AnalysisResult {
   score: ScoreInfo;
   checks: CheckItem[];       // 固定 9 项，顺序见 PRD 附录 A
   suggestions: Suggestion[];  // 仅包含 status 不为 'pass' 的项
+  historyComparison?: HistoryComparison; // 与上次同仓库检测的差异（如存在）
   report: string;            // 完整的 Markdown 检测报告文本，R2 独占生成
 }
 ```
@@ -253,6 +254,27 @@ interface CheckSummaryItem {
   status: CheckStatus;       // 'pass' | 'partial' | 'fail'
 }
 
+interface HistorySnapshot {
+  score: number;
+  level: '优秀' | '较完整' | '基本可用' | '需要完善';
+  timestamp: string;
+  checkSummary: CheckSummaryItem[];
+}
+
+interface CheckStatusChange {
+  name: string;
+  previousStatus: CheckStatus;
+  currentStatus: CheckStatus;
+}
+
+interface HistoryComparison {
+  previousScore: number;
+  previousLevel: '优秀' | '较完整' | '基本可用' | '需要完善';
+  previousTimestamp: string;
+  scoreDelta: number;
+  changedChecks: CheckStatusChange[];
+}
+
 interface HistoryRecord {
   repoUrl: string;
   repoName: string;          // "owner/repo"
@@ -260,6 +282,7 @@ interface HistoryRecord {
   level: '优秀' | '较完整' | '基本可用' | '需要完善';
   timestamp: string;         // ISO 时间戳
   checkSummary: CheckSummaryItem[];
+  previous?: HistorySnapshot;
 }
 ```
 
@@ -267,13 +290,14 @@ interface HistoryRecord {
 
 ```typescript
 // src/store/history.ts — 所有者：R5
-function saveHistory(repoUrl: string, result: AnalysisResult): void;
+function saveHistory(repoUrl: string, result: AnalysisResult): HistoryRecord;
+function createHistoryComparison(result: AnalysisResult, previous?: HistorySnapshot): HistoryComparison | undefined;
 function loadHistory(): HistoryRecord[];
 function deleteHistory(repoUrl: string): void;
 function clearHistory(): void;
 ```
 
-当前已由 R5 实现真实 localStorage 存储逻辑，key 使用 `'opencheck_history'`。同一 `repoUrl` 重复保存会覆盖旧记录，读取时按检测时间倒序返回。
+当前已由 R5 实现真实 localStorage 存储逻辑，key 使用 `'opencheck_history'`。同一 `repoName` 重复保存会覆盖旧记录并把旧记录摘要保存为 `previous`，读取时按检测时间倒序返回。
 
 `saveHistory` 由 R5 内部从 `AnalysisResult` 提取字段组装 `HistoryRecord`。**R4 只传 `(repoUrl, result)`，不自己拼接 HistoryRecord。**
 
