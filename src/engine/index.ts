@@ -31,3 +31,6 @@ export {
 export { calculateScore, calculateLevel } from './scoring';
 export { generateSuggestions } from './suggestions';
 export { generateReport } from './report';
+export { DEMO_RESULTS } from './demoData';
+export { RULE_EXPLANATIONS } from './rules';
+export type { RuleExplanation } from './rules';

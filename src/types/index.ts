@@ -61,6 +61,12 @@ export interface ApiError {
 /** fetchRepo 返回值：成功返回数据，失败返回错误对象（不 throw） */
 export type FetchRepoResult = GithubData | ApiError
 
+export interface RateLimitInfo {
+  limit: number
+  remaining: number
+  resetAt: string
+}
+
 
 /* =========================================================
  * R2 所有：分析引擎契约（AnalysisResult）

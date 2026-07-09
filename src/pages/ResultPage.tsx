@@ -17,7 +17,7 @@ import {
   StatusIcon,
 } from '@/components'
 import { fetchRepo, isParseError, parseRepoUrl } from '@/api'
-import { analyze, generateReport } from '@/engine'
+import { RULE_EXPLANATIONS, analyze, generateReport } from '@/engine'
 import { ROUTE } from '@/router/routes'
 import { setLastResult } from '@/store/resultCache'
 import { createHistoryComparison, saveHistory } from '@/store/history'
@@ -25,6 +25,8 @@ import type { AnalysisResult, ApiError, ApiErrorKind } from '@/types'
 
 interface ResultLocationState {
   repoUrl?: string
+  mode?: 'real' | 'demo'
+  result?: AnalysisResult
 }
 
 type ResultErrorKind = ApiErrorKind | 'input'
@@ -36,7 +38,7 @@ interface ResultError {
 
 type ResultState =
   | { status: 'loading'; repoUrl: string }
-  | { status: 'success'; repoUrl: string; result: AnalysisResult }
+  | { status: 'success'; repoUrl: string; result: AnalysisResult; mode: 'real' | 'demo' }
   | { status: 'error'; repoUrl?: string; error: ResultError }
 
 function isApiError(result: Awaited<ReturnType<typeof fetchRepo>>): result is ApiError {
@@ -80,6 +82,7 @@ export default function ResultPage() {
     repoUrl,
   })
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null)
+  const [showRules, setShowRules] = useState(false)
 
   const runAnalysis = useCallback(async (rawUrl: string) => {
     const parsed = parseRepoUrl(rawUrl)
@@ -124,14 +127,24 @@ export default function ResultPage() {
       status: 'success',
       repoUrl: rawUrl,
       result: resultForDisplay,
+      mode: 'real',
     })
   }, [])
 
   useEffect(() => {
     if (hasStarted.current) return
     hasStarted.current = true
+    if (state?.mode === 'demo' && state.result) {
+      setResultState({
+        status: 'success',
+        repoUrl: state.repoUrl ?? state.result.repoInfo.fullName,
+        result: state.result,
+        mode: 'demo',
+      })
+      return
+    }
     void runAnalysis(repoUrl)
-  }, [repoUrl, runAnalysis])
+  }, [repoUrl, runAnalysis, state])
 
   const handleViewReport = (result: AnalysisResult) => {
     setLastResult(result)
@@ -185,6 +198,7 @@ export default function ResultPage() {
 
   const { result } = resultState
   const repo = result.repoInfo
+  const isDemo = resultState.mode === 'demo'
 
   return (
     <PageLayout title="检测结果">
@@ -196,6 +210,7 @@ export default function ResultPage() {
             <p className="repo-card__description">
               {repo.description || '该仓库暂无简介'}
             </p>
+            {isDemo && <p className="repo-card__demo">演示模式：本结果来自本地样例，不会请求 GitHub 或写入历史。</p>}
           </div>
           <LevelTag level={result.score.level} />
         </div>
@@ -239,7 +254,28 @@ export default function ResultPage() {
         </div>
 
         <section className="result-section">
-          <h2 className="result-section__title">检测明细</h2>
+          <div className="result-section__heading">
+            <h2 className="result-section__title">检测明细</h2>
+            <button
+              className="result-btn result-btn--secondary result-rule-btn"
+              type="button"
+              onClick={() => setShowRules((value) => !value)}
+            >
+              {showRules ? '收起评分规则' : '查看评分规则'}
+            </button>
+          </div>
+          {showRules && (
+            <div className="rule-panel">
+              {RULE_EXPLANATIONS.map((rule) => (
+                <article className="rule-item" key={rule.name}>
+                  <span>{rule.maxScore} 分</span>
+                  <h3>{rule.name}</h3>
+                  <p>{rule.condition}</p>
+                  <p>{rule.importance}</p>
+                </article>
+              ))}
+            </div>
+          )}
           <ul className="check-list">
             {result.checks.map((check) => (
               <li className="check-item" key={check.name}>

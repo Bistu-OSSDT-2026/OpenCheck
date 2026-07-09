@@ -21,7 +21,7 @@ export { parseRepoUrl, isParseError, getFullName } from './parseRepoUrl'
 export type { ParseSuccess, ParseError, ParseResult } from './parseRepoUrl'
 
 // GitHub API
-export { fetchRepoInfo, fetchFileList, fetchFileContent, fetchRepo } from './githubApi'
+export { fetchRepoInfo, fetchFileList, fetchFileContent, fetchRepo, fetchRateLimit } from './githubApi'
 
 // Token 存储（R1 是 token 槽位唯一所有者，localStorage key: 'opencheck_token'）
 export { getToken, saveToken, clearToken } from './tokenStorage'

@@ -9,11 +9,16 @@
 
 import { useState, useEffect } from 'react'
 import { PageLayout } from '@/components'
+import { fetchRateLimit } from '@/api'
 import { getToken, saveToken, clearToken } from '@/api/tokenStorage'
+import type { ApiError, RateLimitInfo } from '@/types'
 
 export default function TokenPage() {
   const [token, setToken] = useState('')
   const [saved, setSaved] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null)
+  const [rateError, setRateError] = useState('')
 
   useEffect(() => {
     const existing = getToken()
@@ -29,8 +34,23 @@ export default function TokenPage() {
   const handleClear = () => {
     clearToken()
     setToken('')
+    setRateLimit(null)
+    setRateError('')
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleCheckRateLimit = async () => {
+    setChecking(true)
+    setRateError('')
+    setRateLimit(null)
+    const result = await fetchRateLimit(token.trim() || undefined)
+    setChecking(false)
+    if (isApiError(result)) {
+      setRateError(result.message)
+      return
+    }
+    setRateLimit(result)
   }
 
   return (
@@ -59,6 +79,10 @@ export default function TokenPage() {
         </div>
 
         <div className="token-form">
+          <div className="token-status">
+            <span>当前状态</span>
+            <strong>{token.trim() ? '已配置 Token' : '未配置 Token'}</strong>
+          </div>
           <label className="token-label" htmlFor="token-input">
             Personal Access Token
           </label>
@@ -79,9 +103,30 @@ export default function TokenPage() {
                 清除 Token
               </button>
             )}
+            <button
+              className="token-clear-btn token-rate-btn"
+              type="button"
+              onClick={() => void handleCheckRateLimit()}
+              disabled={checking}
+            >
+              {checking ? '检查中...' : '检查 API 额度'}
+            </button>
           </div>
+          {rateLimit && (
+            <div className="token-rate-result">
+              <span>剩余 {rateLimit.remaining} / {rateLimit.limit}</span>
+              <span>
+                重置时间：{rateLimit.resetAt ? new Date(rateLimit.resetAt).toLocaleString('zh-CN') : '未知'}
+              </span>
+            </div>
+          )}
+          {rateError && <p className="token-rate-error">{rateError}</p>}
         </div>
       </div>
     </PageLayout>
   )
+}
+
+function isApiError(result: RateLimitInfo | ApiError): result is ApiError {
+  return 'kind' in result
 }

@@ -89,6 +89,12 @@ interface ApiError {
 
 /** fetchRepo 返回值：成功返回数据，失败返回错误对象（不 throw） */
 type FetchRepoResult = GithubData | ApiError;
+
+interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetAt: string;           // ISO 时间戳
+}
 ```
 
 **规则：R1 的所有异步函数跨边界不抛异常。** 消费者用 `if ('kind' in result)` 分支判断，不写 try/catch。
@@ -116,9 +122,11 @@ function fetchRepoInfo(owner: string, repo: string, token?: string): Promise<Rep
 function fetchFileList(owner: string, repo: string, token?: string): Promise<FileItem[] | ApiError>;
 function fetchFileContent(owner: string, repo: string, path: string, token?: string): Promise<string | ApiError>;
 function fetchRepo(owner: string, repo: string, token?: string): Promise<GithubData | ApiError>;
+function fetchRateLimit(token?: string): Promise<RateLimitInfo | ApiError>;
 ```
 
 `fetchRepo` 内部并行调用 3 个独立函数并组装 `GithubData`。自动附带 Token（如已配置）。README.md 不存在时 `readmeContent` 为 `''`。任一部分失败则返回对应 `ApiError`。
+`fetchRateLimit` 用于 Token 页展示当前 GitHub API 额度，不影响检测主流程。
 
 > **Mock 数据**：R1 提供 `MOCK_GITHUB_DATA`（硬编码 GithubData）和 `fetchMockRepo()`（模拟延迟的 fetchRepo），供 Day 1-2 前端独立开发。
 
@@ -240,6 +248,16 @@ interface EmptyStateProps     { text: string; action?: React.ReactNode }
 ### R4 导出
 
 R4 是集成终端——它消费 R1/R2/R3 的导出，但**不对外导出任何共享契约**。只有两个页面组件（`HomePage`、`ResultPage`）挂在路由上，被 R3 的 App.tsx 引用。
+
+`ResultPage` 的路由 state 支持真实检测和本地演示两种模式：
+
+```typescript
+interface ResultLocationState {
+  repoUrl?: string;
+  mode?: 'real' | 'demo';
+  result?: AnalysisResult;   // demo 模式使用，不请求 GitHub，不写历史
+}
+```
 
 ---
 
