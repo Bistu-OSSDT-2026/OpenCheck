@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react'
+import { Copy, Download } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PageLayout, EmptyState } from '@/components'
@@ -64,9 +65,11 @@ export default function ReportPage() {
     <PageLayout title="检测报告">
       <div className="report-toolbar">
         <button className="report-btn" type="button" onClick={handleCopy}>
+          <Copy aria-hidden="true" size={18} />
           {copied ? '已复制' : '复制报告'}
         </button>
         <button className="report-btn report-btn--secondary" type="button" onClick={handleDownload}>
+          <Download aria-hidden="true" size={18} />
           下载报告
         </button>
       </div>

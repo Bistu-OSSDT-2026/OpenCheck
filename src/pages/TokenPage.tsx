@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { ExternalLink, Eye, EyeOff, Gauge, Info, KeyRound, Save, Trash2 } from 'lucide-react'
 import { PageLayout } from '@/components'
 import { fetchRateLimit } from '@/api'
 import { getToken, saveToken, clearToken } from '@/api/tokenStorage'
@@ -19,6 +20,7 @@ export default function TokenPage() {
   const [checking, setChecking] = useState(false)
   const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null)
   const [rateError, setRateError] = useState('')
+  const [showToken, setShowToken] = useState(false)
 
   useEffect(() => {
     const existing = getToken()
@@ -57,7 +59,7 @@ export default function TokenPage() {
     <PageLayout title="Token 配置">
       <div className="token-page">
         <div className="token-info">
-          <h3>什么是 GitHub Token？</h3>
+          <h3><Info aria-hidden="true" size={21} />什么是 GitHub Token？</h3>
           <p>
             GitHub Personal Access Token 用于身份验证，配置后可提升 API 请求限额：
           </p>
@@ -73,6 +75,7 @@ export default function TokenPage() {
               rel="noopener noreferrer"
             >
               GitHub Token 设置页
+              <ExternalLink aria-hidden="true" size={16} />
             </a>{' '}
             生成 Token 时，无需勾选任何权限（本工具仅访问公开仓库信息）。
           </p>
@@ -86,20 +89,33 @@ export default function TokenPage() {
           <label className="token-label" htmlFor="token-input">
             Personal Access Token
           </label>
-          <input
-            id="token-input"
-            className="token-input"
-            type="password"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-          />
+          <div className="token-input-wrap">
+            <KeyRound aria-hidden="true" size={18} />
+            <input
+              id="token-input"
+              className="token-input"
+              type={showToken ? 'text' : 'password'}
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+            />
+            <button
+              aria-label={showToken ? '隐藏 Token' : '显示 Token'}
+              className="token-visibility-btn"
+              type="button"
+              onClick={() => setShowToken((value) => !value)}
+            >
+              {showToken ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+            </button>
+          </div>
           <div className="token-buttons">
             <button className="token-save-btn" type="button" onClick={handleSave}>
+              <Save aria-hidden="true" size={18} />
               {saved ? '已保存' : '保存'}
             </button>
             {token && (
               <button className="token-clear-btn" type="button" onClick={handleClear}>
+                <Trash2 aria-hidden="true" size={17} />
                 清除 Token
               </button>
             )}
@@ -109,6 +125,7 @@ export default function TokenPage() {
               onClick={() => void handleCheckRateLimit()}
               disabled={checking}
             >
+              <Gauge aria-hidden="true" size={17} />
               {checking ? '检查中...' : '检查 API 额度'}
             </button>
           </div>

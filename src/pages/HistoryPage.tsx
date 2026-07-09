@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { BarChart3, Clock3, RotateCw, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { PageLayout, EmptyState, LevelTag } from '@/components'
 import { ROUTE } from '@/router/routes'
@@ -69,6 +70,7 @@ export default function HistoryPage() {
       <div className="history-actions">
         <span className="history-count">共 {records.length} 条记录</span>
         <button className="history-clear-btn" type="button" onClick={handleClearAll}>
+          <Trash2 aria-hidden="true" size={17} />
           清空全部历史
         </button>
       </div>
@@ -85,11 +87,15 @@ export default function HistoryPage() {
                 <LevelTag level={r.level} />
               </span>
               <span className="history-item__meta">
-                <span className="history-item__score">得分 {r.score}</span>
+                <span className="history-item__score">
+                  <BarChart3 aria-hidden="true" size={15} />
+                  得分 {r.score}
+                </span>
                 <span className={getScoreDelta(r) !== null && getScoreDelta(r)! < 0 ? 'history-item__delta is-negative' : 'history-item__delta'}>
                   {formatScoreDelta(getScoreDelta(r))}
                 </span>
                 <span className="history-item__time">
+                  <Clock3 aria-hidden="true" size={15} />
                   {new Date(r.timestamp).toLocaleString('zh-CN')}
                 </span>
               </span>
@@ -99,6 +105,7 @@ export default function HistoryPage() {
               type="button"
               onClick={() => handleDelete(r.repoUrl, r.repoName)}
             >
+              <Trash2 aria-hidden="true" size={16} />
               删除
             </button>
             <button
@@ -106,6 +113,7 @@ export default function HistoryPage() {
               type="button"
               onClick={() => handleRetest(r)}
             >
+              <RotateCw aria-hidden="true" size={16} />
               重新检测
             </button>
           </li>

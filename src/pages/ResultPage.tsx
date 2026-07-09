@@ -7,6 +7,18 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  BookOpen,
+  CalendarDays,
+  Code2,
+  FileText,
+  GitBranch,
+  GitFork,
+  RotateCcw,
+  Scale,
+  Search,
+  Star,
+} from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ErrorState,
@@ -199,6 +211,15 @@ export default function ResultPage() {
   const { result } = resultState
   const repo = result.repoInfo
   const isDemo = resultState.mode === 'demo'
+  const repoMeta = [
+    { label: '语言', value: repo.language || '未知', Icon: Code2 },
+    { label: 'Stars', value: repo.stars.toLocaleString('zh-CN'), Icon: Star },
+    { label: 'Forks', value: repo.forks.toLocaleString('zh-CN'), Icon: GitFork },
+    { label: '许可证', value: repo.license || '未识别', Icon: Scale },
+    { label: '默认分支', value: repo.defaultBranch, Icon: GitBranch },
+    { label: '创建', value: formatDate(repo.createdAt), Icon: CalendarDays },
+    { label: '更新', value: formatDate(repo.updatedAt), Icon: CalendarDays },
+  ]
 
   return (
     <PageLayout title="检测结果">
@@ -216,13 +237,12 @@ export default function ResultPage() {
         </div>
 
         <div className="repo-meta">
-          <span>语言：{repo.language || '未知'}</span>
-          <span>Stars：{repo.stars.toLocaleString('zh-CN')}</span>
-          <span>Forks：{repo.forks.toLocaleString('zh-CN')}</span>
-          <span>许可证：{repo.license || '未识别'}</span>
-          <span>默认分支：{repo.defaultBranch}</span>
-          <span>创建：{formatDate(repo.createdAt)}</span>
-          <span>更新：{formatDate(repo.updatedAt)}</span>
+          {repoMeta.map(({ label, value, Icon }) => (
+            <span key={label}>
+              <Icon aria-hidden="true" size={16} />
+              <strong>{label}：</strong>{value}
+            </span>
+          ))}
         </div>
 
         <div className="result-summary">
@@ -245,9 +265,11 @@ export default function ResultPage() {
               </div>
             )}
             <button className="result-btn" type="button" onClick={() => handleViewReport(result)}>
+              <FileText aria-hidden="true" size={18} />
               查看报告
             </button>
             <button className="result-btn result-btn--secondary" type="button" onClick={() => navigate(ROUTE.HOME)}>
+              <Search aria-hidden="true" size={18} />
               检测其他仓库
             </button>
           </div>
@@ -261,6 +283,7 @@ export default function ResultPage() {
               type="button"
               onClick={() => setShowRules((value) => !value)}
             >
+              <BookOpen aria-hidden="true" size={17} />
               {showRules ? '收起评分规则' : '查看评分规则'}
             </button>
           </div>
@@ -284,13 +307,19 @@ export default function ResultPage() {
                     <StatusIcon status={check.status} />
                     <span className="check-item__name">{check.name}</span>
                   </div>
-                  <p className="check-item__reason">{check.reason}</p>
+                  <p className="check-item__reason">
+                    <span>判定原因</span>
+                    {check.reason}
+                  </p>
                   {check.evidence && check.evidence.length > 0 && (
-                    <ul className="check-item__evidence">
-                      {check.evidence.slice(0, 3).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
+                    <div className="check-item__evidence-wrap">
+                      <span>证据</span>
+                      <ul className="check-item__evidence">
+                        {check.evidence.slice(0, 3).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
                 <span className="check-item__score">
@@ -317,6 +346,7 @@ export default function ResultPage() {
                       type="button"
                       onClick={() => void handleCopyTemplate(suggestion.checkName, suggestion.template ?? '')}
                     >
+                      <FileText aria-hidden="true" size={16} />
                       {copiedTemplate === suggestion.checkName ? '已复制模板' : '复制模板'}
                     </button>
                   )}
@@ -337,6 +367,7 @@ export default function ResultPage() {
                   <li className="change-item" key={change.name}>
                     <strong>{change.name}</strong>
                     <span>
+                      <RotateCcw aria-hidden="true" size={15} />
                       {statusLabel(change.previousStatus)} -&gt; {statusLabel(change.currentStatus)}
                     </span>
                   </li>
