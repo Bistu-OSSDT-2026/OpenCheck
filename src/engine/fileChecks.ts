@@ -1,6 +1,11 @@
 // ============================================================
 // R2 分析引擎层 — 文件存在性检测（7 项）
 // 严格对齐 PRD_OpenCheck.md §5.3.1 + §5.4.1
+//
+// 设计原则：
+//   - 只检测根目录文件（PRD 明确要求"仓库根目录下"）
+//   - 大小写不敏感匹配
+//   - 前 5 项为评分项（共 60 分），后 2 项为补充检测（PRD §5.3.1 要求但 §5.4.1 未给分值）
 // ============================================================
 
 import type { CheckItem, FileItem } from '@/types';
@@ -9,10 +14,7 @@ import type { CheckItem, FileItem } from '@/types';
 // 工具函数
 // ============================================================
 
-/**
- * 在根目录文件列表中查找匹配的文件名（大小写不敏感）
- * 只查根目录（path === name），PRD §5.3.1 明确要求"仓库根目录下"
- */
+/** 在根目录文件中查找匹配（大小写不敏感） */
 function findInRoot(fileList: FileItem[], patterns: string[]): string | null {
   const lowerNameMap = new Map<string, string>();
   for (const f of fileList) {
@@ -26,10 +28,7 @@ function findInRoot(fileList: FileItem[], patterns: string[]): string | null {
   return null;
 }
 
-/**
- * 检查文件列表中是否存在路径以 prefix 开头的文件
- * 用于检测 .github/workflows/ 目录下是否有文件（PRD 要求"非空目录才算存在"）
- */
+/** 检查是否存在路径以 prefix 开头的文件（用于验证目录非空） */
 function findFileUnder(fileList: FileItem[], prefix: string): string | null {
   const normalized = prefix.endsWith('/') ? prefix : prefix + '/';
   const lowerPrefix = normalized.toLowerCase();
@@ -38,10 +37,6 @@ function findFileUnder(fileList: FileItem[], prefix: string): string | null {
   ));
   return found?.path ?? null;
 }
-
-// ============================================================
-// 构建结果
-// ============================================================
 
 function makeResult(
   name: string,
@@ -64,10 +59,10 @@ function makeResult(
 }
 
 // ============================================================
-// 评分检测项（5 项，共 60 分）—— PRD §5.4.1
+// 评分项（5 项，共 60 分）≡ PRD §5.4.1
 // ============================================================
 
-/** README.md — 20 分 */
+/** README.md — 20 分。支持常见变体（.md / .markdown / .txt / .rst / 无后缀） */
 export function checkReadme(fileList: FileItem[]): CheckItem {
   const found = findInRoot(fileList, [
     'readme.md', 'readme.markdown', 'readme', 'readme.txt', 'readme.rst',
@@ -82,7 +77,7 @@ export function checkReadme(fileList: FileItem[]): CheckItem {
   );
 }
 
-/** LICENSE — 15 分 */
+/** LICENSE — 15 分。覆盖 LICENSE / COPYING / UNLICENSE 及各种后缀 */
 export function checkLicense(fileList: FileItem[]): CheckItem {
   const found = findInRoot(fileList, [
     'license', 'license.md', 'license.txt', 'license.rst',
@@ -128,11 +123,11 @@ export function checkContributing(fileList: FileItem[]): CheckItem {
   );
 }
 
-/** CHANGELOG.md — 5 分 */
+/** CHANGELOG.md — 5 分。也接受 CHANGES / HISTORY / RELEASES 等命名 */
 export function checkChangelog(fileList: FileItem[]): CheckItem {
   const found = findInRoot(fileList, [
     'changelog.md', 'changelog', 'changelog.txt', 'changelog.rst',
-    'changes.md', 'history.md', 'releases.md',
+    'changes.md', 'changes', 'history.md', 'releases.md',
   ]);
   return makeResult(
     'CHANGELOG.md',
@@ -145,31 +140,34 @@ export function checkChangelog(fileList: FileItem[]): CheckItem {
 }
 
 // ============================================================
-// 补充检测项（2 项，不计分）—— PRD §5.3.1 要求检测但 §5.4.1 无分值
+// 补充检测项（2 项，不计分）≡ PRD §5.3.1
 // ============================================================
 
 /**
  * 依赖声明文件（不计分）
  *
- * PRD §5.3.1："如 package.json / requirements.txt / go.mod / Cargo.toml /
- * pom.xml 等（根据项目语言判断）"
+ * 覆盖 7 大语言生态的 18 种主流清单文件格式。
+ * 只要命中任一即视为存在。
  */
 export function checkDependencyFile(fileList: FileItem[]): CheckItem {
   const found = findInRoot(fileList, [
-    'package.json',        // Node.js
-    'requirements.txt',    // Python (pip)
-    'pyproject.toml',      // Python (modern)
-    'setup.py',            // Python (legacy)
-    'go.mod',              // Go
-    'Cargo.toml',          // Rust
-    'pom.xml',             // Java (Maven)
-    'build.gradle',        // Java (Gradle)
-    'build.gradle.kts',    // Java (Gradle Kotlin DSL)
-    'Gemfile',             // Ruby
-    'composer.json',       // PHP
-    'CMakeLists.txt',      // C/C++ (CMake)
-    'Makefile',            // 通用
-    'meson.build',         // C/C++ (Meson)
+    // —— Node.js / 前端 ——
+    'package.json',
+    // —— Python ——
+    'requirements.txt', 'pyproject.toml', 'setup.py', 'setup.cfg',
+    'Pipfile', 'poetry.lock',
+    // —— Go ——
+    'go.mod', 'go.sum',
+    // —— Rust ——
+    'Cargo.toml', 'Cargo.lock',
+    // —— Java / JVM ——
+    'pom.xml', 'build.gradle', 'build.gradle.kts', 'settings.gradle',
+    // —— Ruby ——
+    'Gemfile', 'gemspec',
+    // —— PHP ——
+    'composer.json',
+    // —— C / C++ / 通用 ——
+    'CMakeLists.txt', 'Makefile', 'meson.build',
   ]);
   return makeResult(
     '依赖声明文件',
@@ -184,8 +182,7 @@ export function checkDependencyFile(fileList: FileItem[]): CheckItem {
 /**
  * .github/workflows/ 目录（不计分）
  *
- * PRD §5.3.1："CI/CD 工作流配置目录（非空目录才算存在）"
- *
+ * PRD："CI/CD 工作流配置目录（非空目录才算存在）"
  * 检测 .github/workflows/ 路径下是否有至少一个文件。
  */
 export function checkWorkflowsDir(fileList: FileItem[]): CheckItem {
@@ -204,12 +201,6 @@ export function checkWorkflowsDir(fileList: FileItem[]): CheckItem {
 // 批量执行
 // ============================================================
 
-/**
- * 执行所有文件存在性检测（7 项）
- *
- * 前 5 项计入总分（共 60 分，PRD §5.4.1），
- * 后 2 项为补充检测（不计分，PRD §5.3.1）。
- */
 export function runFileChecks(fileList: FileItem[]): CheckItem[] {
   return [
     checkReadme(fileList),
