@@ -139,24 +139,29 @@ export async function fetchRepoInfo(
 }
 
 /**
- * 获取仓库根目录文件列表（GET /repos/{owner}/{repo}/contents/）
+ * 获取仓库文件列表（GET /repos/{owner}/{repo}/git/trees/{branch}?recursive=1）
+ *
+ * 这里使用递归 Git Trees API，而不是 Contents 根目录接口。
+ * 根目录接口只能看到 .github 目录本身，看不到 .github/workflows/ci.yml 这类二级文件。
  */
 export async function fetchFileList(
   owner: string,
   repo: string,
   token?: string,
+  branch = 'HEAD',
 ): Promise<FileItem[] | ApiError> {
-  const url = `${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/`
+  const url = `${API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`
   const raw = await safeFetch(url, { headers: buildHeaders(token) })
 
   if (isApiError(raw)) return raw
 
-  const list = raw as Record<string, unknown>[]
+  const data = raw as Record<string, unknown>
+  const list = Array.isArray(data.tree) ? data.tree as Record<string, unknown>[] : []
 
   return list.map((item) => ({
-    name: item.name as string,
+    name: String(item.path ?? '').split('/').pop() || '',
     path: item.path as string,
-    type: (item.type as 'file' | 'dir') || 'file',
+    type: item.type === 'tree' ? 'dir' : 'file',
   }))
 }
 
@@ -219,14 +224,15 @@ export async function fetchRepo(
   repo: string,
   token?: string,
 ): Promise<GithubData | ApiError> {
-  const [infoResult, fileListResult, readmeResult] = await Promise.all([
-    fetchRepoInfo(owner, repo, token),
-    fetchFileList(owner, repo, token),
-    fetchFileContent(owner, repo, 'README.md', token),
-  ])
+  const infoResult = await fetchRepoInfo(owner, repo, token)
 
   // repoInfo 是必须的，失败即整体返回错误
   if (isApiError(infoResult)) return infoResult
+
+  const [fileListResult, readmeResult] = await Promise.all([
+    fetchFileList(owner, repo, token, infoResult.defaultBranch),
+    fetchFileContent(owner, repo, 'README.md', token),
+  ])
 
   // fileList 失败 → 返回错误
   if (isApiError(fileListResult)) return fileListResult
