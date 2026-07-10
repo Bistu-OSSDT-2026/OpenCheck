@@ -209,6 +209,8 @@ OpenCheck/
 - [团队分工与开发计划](docs/WORK_DIVISION.md)
 - [接口契约](docs/CONTRACTS.md)
 - [AI Agent 协作指南](docs/AI_AGENT_GUIDE.md)
+- [v0.1.0 Release Notes](docs/RELEASE_NOTES_v0.1.0.md)
+- [v0.1.0 协作证据清单](docs/COLLABORATION_EVIDENCE.md)
 - [贡献指南](CONTRIBUTING.md)
 - [验收报告](ACCEPTANCE_REPORT.md)
 

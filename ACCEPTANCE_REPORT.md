@@ -3,7 +3,7 @@
 **验收人：** stevewang25 (王靖壹, R2)
 **日期：** 2026-07-09（修订版）
 **版本：** v0.1.0 MVP
-**验收依据：** [PRD_OpenCheck.md](../PRD_OpenCheck.md)
+**验收依据：** [PRD_OpenCheck.md](docs/PRD_OpenCheck.md)
 
 ---
 

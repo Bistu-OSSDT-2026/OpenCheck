@@ -209,6 +209,8 @@ OpenCheck/
 - [Team Work Division and Plan](docs/WORK_DIVISION.md)
 - [Interface Contracts](docs/CONTRACTS.md)
 - [AI Agent Collaboration Guide](docs/AI_AGENT_GUIDE.md)
+- [v0.1.0 Release Notes](docs/RELEASE_NOTES_v0.1.0.md)
+- [v0.1.0 Collaboration Evidence](docs/COLLABORATION_EVIDENCE.md)
 - [Contributing Guide](CONTRIBUTING.md)
 - [Acceptance Report](ACCEPTANCE_REPORT.md)
 
