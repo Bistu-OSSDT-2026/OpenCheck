@@ -194,7 +194,9 @@ OpenCheck/
 
 ## 当前版本范围
 
-`v0.1.0 MVP` 是源码和静态前端版本，不是桌面软件安装包。
+当前已发布版本：[OpenCheck v0.1.0 MVP](https://github.com/Bistu-OSSDT-2026/OpenCheck/releases/tag/v0.1.0)。
+
+`v0.1.0 MVP` 是源码和静态前端版本，不是桌面软件安装包。Release 页面提供版本说明、运行方式、验证情况和已知限制。
 
 - 仅支持 GitHub 公开仓库。
 - 不包含后端数据库、账号系统或云端同步。
@@ -205,6 +207,7 @@ OpenCheck/
 
 ## 相关文档
 
+- [v0.1.0 MVP Release](https://github.com/Bistu-OSSDT-2026/OpenCheck/releases/tag/v0.1.0)
 - [产品需求文档](docs/PRD_OpenCheck.md)
 - [团队分工与开发计划](docs/WORK_DIVISION.md)
 - [接口契约](docs/CONTRACTS.md)

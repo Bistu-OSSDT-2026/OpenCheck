@@ -194,7 +194,9 @@ OpenCheck/
 
 ## Current Scope
 
-`v0.1.0 MVP` is a source-code and static-frontend release, not a desktop installer.
+Current published version: [OpenCheck v0.1.0 MVP](https://github.com/Bistu-OSSDT-2026/OpenCheck/releases/tag/v0.1.0).
+
+`v0.1.0 MVP` is a source-code and static-frontend release, not a desktop installer. The Release page includes release notes, local run instructions, verification status, and known limitations.
 
 - Supports public GitHub repositories only.
 - Does not include a backend database, account system, or cloud sync.
@@ -205,6 +207,7 @@ OpenCheck/
 
 ## Related Docs
 
+- [v0.1.0 MVP Release](https://github.com/Bistu-OSSDT-2026/OpenCheck/releases/tag/v0.1.0)
 - [Product Requirements Document](docs/PRD_OpenCheck.md)
 - [Team Work Division and Plan](docs/WORK_DIVISION.md)
 - [Interface Contracts](docs/CONTRACTS.md)
